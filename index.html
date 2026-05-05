@@ -326,6 +326,126 @@
       text-align: center;
     }
 
+    /* ===== PIN画面 ===== */
+    #pin-screen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(160deg, var(--pink-pale) 0%, var(--cream) 60%, var(--cream-dark) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+    }
+
+    #pin-screen.hidden { display: none; }
+
+    .pin-card {
+      background: var(--white);
+      border-radius: 24px;
+      padding: 36px 28px 32px;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(139,94,60,0.18);
+      border: 1.5px solid var(--pink-light);
+    }
+
+    .pin-owl {
+      font-size: 56px;
+      margin-bottom: 4px;
+      animation: owlBob 3s ease-in-out infinite;
+    }
+
+    @keyframes owlBob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .pin-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--brown);
+      margin-bottom: 4px;
+    }
+
+    .pin-subtitle {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-bottom: 24px;
+    }
+
+    .pin-dots {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .pin-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid var(--pink);
+      background: transparent;
+      transition: all 0.15s;
+    }
+
+    .pin-dot.filled {
+      background: var(--pink);
+      border-color: var(--brown-light);
+      transform: scale(1.15);
+    }
+
+    .pin-keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .pin-key {
+      height: 58px;
+      border-radius: 14px;
+      border: 1.5px solid var(--cream-dark);
+      background: var(--cream);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--brown-dark);
+      cursor: pointer;
+      transition: all 0.12s;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pin-key:hover { background: var(--pink-pale); border-color: var(--pink); }
+    .pin-key:active { transform: scale(0.93); background: var(--pink-light); }
+    .pin-key.empty { background: transparent; border-color: transparent; cursor: default; pointer-events: none; }
+    .pin-key.delete { font-size: 18px; color: var(--text-light); }
+
+    .pin-msg {
+      font-size: 13px;
+      min-height: 20px;
+      transition: opacity 0.2s;
+    }
+
+    .pin-msg.error { color: #c0392b; }
+    .pin-msg.lock  { color: var(--brown-light); }
+
+    .pin-card.shake {
+      animation: shake 0.4s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%       { transform: translateX(-8px); }
+      40%       { transform: translateX(8px); }
+      60%       { transform: translateX(-5px); }
+      80%       { transform: translateX(5px); }
+    }
+
     /* ===== デスクトップ対応 ===== */
     @media (min-width: 481px) {
       body { background: var(--pink-pale); }
@@ -340,6 +460,36 @@
   </style>
 </head>
 <body>
+<!-- ===== PIN認証画面 ===== -->
+<div id="pin-screen">
+  <div class="pin-card" id="pin-card">
+    <div class="pin-owl">🦉</div>
+    <div class="pin-title">ふくちゃんトーク</div>
+    <div class="pin-subtitle">PINを入力してね</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key empty"></button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key delete" onclick="pinDelete()">⌫</button>
+    </div>
+    <div class="pin-msg" id="pin-msg"></div>
+  </div>
+</div>
+
 <div id="app">
 
   <header>
@@ -385,6 +535,83 @@
 </div>
 
 <script>
+  /* ===== PIN認証 ===== */
+  const CORRECT_PIN = '1122';
+  const MAX_FAILS   = 3;
+  const LOCK_SEC    = 30;
+
+  let pinInput   = '';
+  let failCount  = 0;
+  let lockTimer  = null;
+
+  function pinKey(digit) {
+    if (lockTimer || pinInput.length >= 4) return;
+    pinInput += digit;
+    updateDots();
+    if (pinInput.length === 4) setTimeout(checkPin, 120);
+  }
+
+  function pinDelete() {
+    if (lockTimer) return;
+    pinInput = pinInput.slice(0, -1);
+    updateDots();
+    setMsg('', '');
+  }
+
+  function updateDots() {
+    for (let i = 0; i < 4; i++) {
+      document.getElementById('d' + i).classList.toggle('filled', i < pinInput.length);
+    }
+  }
+
+  function setMsg(text, type) {
+    const el = document.getElementById('pin-msg');
+    el.textContent = text;
+    el.className = 'pin-msg' + (type ? ' ' + type : '');
+  }
+
+  function checkPin() {
+    if (pinInput === CORRECT_PIN) {
+      document.getElementById('pin-screen').classList.add('hidden');
+      if (window.innerWidth >= 481) msgInput.focus();
+      return;
+    }
+    failCount++;
+    pinInput = '';
+    updateDots();
+
+    const card = document.getElementById('pin-card');
+    card.classList.remove('shake');
+    void card.offsetWidth;
+    card.classList.add('shake');
+
+    if (failCount >= MAX_FAILS) {
+      startLock();
+    } else {
+      setMsg('ふく、それちがうみたい…🦉', 'error');
+    }
+  }
+
+  function startLock() {
+    let remaining = LOCK_SEC;
+    setMsg(`${remaining}秒ロック中だよ…ちょっとねむいだけ…🦉`, 'lock');
+    document.querySelectorAll('.pin-key').forEach(k => k.disabled = true);
+
+    lockTimer = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(lockTimer);
+        lockTimer = null;
+        failCount = 0;
+        document.querySelectorAll('.pin-key').forEach(k => k.disabled = false);
+        setMsg('もう一度入力してね🦉', '');
+      } else {
+        setMsg(`${remaining}秒ロック中だよ…ちょっとねむいだけ…🦉`, 'lock');
+      }
+    }, 1000);
+  }
+
+  /* ===== チャット ===== */
   const API_URL = 'https://fukuchan-backend-1025423451531.asia-northeast1.run.app';
   const chatArea = document.getElementById('chat-area');
   const msgInput = document.getElementById('msg-input');
