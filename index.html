@@ -752,7 +752,14 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          history: conversationHistory.slice(0, -1) // 最新の発言を除いた履歴
+          history: [
+            {
+              role: 'user',
+              content: `今日の日付は${new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}です。`
+            },
+            { role: 'model', content: 'わかったよ！今日の日付を考慮して答えるね。' },
+            ...conversationHistory.slice(0, -1)
+          ]
         })
       });
 
