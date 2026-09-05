@@ -40,7 +40,7 @@ Worker1つの中に、静的アセット（`index.html`等）と`fetch`ハンド
 | フロント・バックエンドのホスティング | GitHub Pages（フロント）／Google Cloud Run（バックエンド）に分離 | Cloudflare Workers 1つに統合 |
 | デプロイ契機 | フロント：`.github/workflows/pages.yml`／バックエンド：手動`gcloud run deploy`等 | `wrangler deploy`（CI/CD化は6章参照） |
 | バックエンド実装言語 | Python（FastAPI） | JavaScript（Workers標準ランタイム、フレームワーク不使用） |
-| 秘密情報管理 | Cloud Runの環境変数 | 本番：`wrangler secret put`（Workers Secrets）／ローカル：`.dev.vars`（後述） |
+| 秘密情報管理 | Cloud Runの環境変数 | 本番：`wrangler deploy --secrets-file .dev.vars`（Workers Secrets、6-5章）／ローカル：`.dev.vars`（後述） |
 | ソース管理場所 | フロント：`fukuchan-app/index.html`／バックエンド：`fukuchan-knowledge/backend/`（Python） | 統合Workerプロジェクト：`fukuchan-app/`直下（後述の構成） |
 
 移行中は旧構成（Python版`backend/`・GitHub Pages）を並行稼働させ、切り替え確認後に削除する（8章）。
@@ -90,10 +90,10 @@ Workers Static Assetsを使うため、`wrangler.toml`に最低限以下を明�
 
 | 名前 | 種別 | 設定場所 | 用途 |
 |---|---|---|---|
-| `GEMINI_API_KEY` | シークレット | `wrangler secret put` / `.dev.vars` | Gemini API呼び出し（`x-goog-api-key`ヘッダー） |
-| `GITHUB_TOKEN` | シークレット | `wrangler secret put` / `.dev.vars` | GitHub Contents API呼び出し |
-| `WORKER_PIN` | シークレット | `wrangler secret put` / `.dev.vars` | `/auth`でのPIN照合 |
-| `AUTH_TOKEN_SECRET` | シークレット | `wrangler secret put` / `.dev.vars` | 認証トークンのHMAC署名鍵（5章） |
+| `GEMINI_API_KEY` | シークレット | 本番：`wrangler deploy --secrets-file .dev.vars`／ローカル：`.dev.vars` | Gemini API呼び出し（`x-goog-api-key`ヘッダー） |
+| `GITHUB_TOKEN` | シークレット | 同上 | GitHub Contents API呼び出し |
+| `WORKER_PIN` | シークレット | 同上 | `/auth`でのPIN照合 |
+| `AUTH_TOKEN_SECRET` | シークレット | 同上 | 認証トークンのHMAC署名鍵（5章） |
 | `GITHUB_REPO` | 通常変数 | `wrangler.toml`の`[vars]` | ナレッジ取得先リポジトリ名（秘密情報ではないため平文でよい） |
 
 ## 4. API契約（正規仕様として確定）

@@ -9,7 +9,7 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 | フェーズ | AIが担当 | ユーザーが担当 |
 |---|---|---|
 | 準備 | 作業ブランチ・タグ作成、`wrangler.toml`・フォルダ構成の作成、ツールチェーン固定 | Cloudflareアカウント作成、`wrangler login`（ブラウザ認証） |
-| 実装 | `src/index.js`実装（`/auth`・`/chat`・`/health`・静的配信・運用制限）、契約テスト作成 | 実際のシークレット値の入力（`wrangler secret put`／`.dev.vars`） |
+| 実装 | `src/index.js`実装（`/auth`・`/chat`・`/health`・静的配信・運用制限）、契約テスト作成 | 実際のシークレット値の入力（`.dev.vars`、本番投入は`wrangler deploy --secrets-file .dev.vars`） |
 | 動作確認 | 確認手順の提示、レスポンスの確認・デバッグ | ローカルでのコマンド実行の承認 |
 | デプロイ・CI/CD | デプロイコマンド・GitHub Actions設定の提案 | 実行の承認、GitHub Actions secretsの登録（ダッシュボード操作） |
 | 切り替え | LINEリンク更新手順の提示、mainへのマージ・転送ページの実装 | Cloudflareダッシュボードでの最終確認、LINEリンクの実際の変更 |
