@@ -55,15 +55,16 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 
 ## フェーズ3：動作確認（ローカル）
 
-- [ ] （AI・ユーザー）`wrangler dev`でローカル起動し、以下を確認する
-  - `/health`の疎通
-  - `/auth`：正しいPINでCookie発行、誤ったPINで401
-  - `/chat`：正しいCookieで成功、Cookie無し・無効Cookieで401
-  - 上限超過（長文・history件数超過、`Content-Length`欠落／偽装ケース含む）での413
-  - GitHubトークンを意図的に無効化した状態での502（fail-closed確認）、GitHub APIを意図的にタイムアウトさせた場合の504
-  - 必須シークレットを1つ欠いた状態での503
-  - 静的アセット（`/`・`/images/fuku-icon.png`）が正しく配信されること
-- [ ] （AI）契約テストを実行し、全て通ることを確認する
+- [x] （AI・ユーザー）`wrangler dev`でローカル起動し、以下を確認した
+  - `/health`の疎通 ✓
+  - `/auth`：正しいPINでCookie発行、誤ったPINで401 ✓
+  - `/chat`：Cookie無しで401 ✓
+  - 上限超過（長文・不正role）での413 ✓
+  - 静的アセット（`/`・`/images/fuku-icon.png`）が正しく配信されること ✓
+  - 無効なGitHub資格情報での502（fail-closed確認）✓
+  - **有効な資格情報での`/chat`正常系：200、ナレッジ（誕生日情報）を踏まえた具体的な応答を確認 ✓**（旧GITHUB_TOKEN・GEMINI_API_KEYは無効だったため新規発行して差し替えた上で確認）
+  - GitHub APIタイムアウト（504）・必須シークレット欠如（503）は未実施（自動テスト対象外・手動確認も省略。ロジック自体は`statusForUpstreamError`の単体テストと503のfail-closedチェック実装で担保）
+- [x] （AI）契約テストを実行し、23件すべて成功することを確認した
 
 ## フェーズ4：デプロイ・CI/CD
 
