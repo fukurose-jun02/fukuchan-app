@@ -87,7 +87,7 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 
 - [ ] （AI・ユーザー）2〜3日おきにWorkers Logsを確認する（保持期間がFree 3日/Paid 7日のため、14日目にまとめて見ても序盤のログは残っていない、`design.md` 6-6）
 - [ ] （AI・ユーザー）2週間、Cloudflare側での稼働に問題がないか確認する（Cloud Run・GitHub Pages転送は維持し、問題があれば`pre-cloudflare-migration`タグへ戻せる状態を保つ）
-- [ ] （AI）`fukuchan-knowledge/docs/README.md`・`docs/SPEC.md`・`docs/SETUP_MANUAL.md`、`fukuchan-app`のPublic README を新構成に更新する
+- [x] （AI）`fukuchan-knowledge/docs/README.md`・`docs/SPEC.md`・`docs/SETUP_MANUAL.md`、`fukuchan-app`のPublic README を新構成に更新した
 
 ## フェーズ7：旧環境の停止・後片付け
 
@@ -110,5 +110,5 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 - [x] LINEのリンクが新URLになっている、旧URLは転送ページになっている
 - [ ] 問題発生時に`pre-cloudflare-migration`タグ・`wrangler rollback`のいずれでも切り戻せることを確認済み
 - [ ] Cloud Run・旧GitHub Pages設定（2週間後）が停止・削除されている
-- [ ] ドキュメント（`fukuchan-knowledge`側3点・`fukuchan-app`側README）が新構成に更新されている
+- [x] ドキュメント（`fukuchan-knowledge`側3点・`fukuchan-app`側README）が新構成に更新されている
 - [ ] ツールチェーン（wrangler・Node.js）のバージョンが固定されている
