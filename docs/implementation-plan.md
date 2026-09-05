@@ -81,7 +81,7 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 - [x] （AI・ユーザー）Workers URLで、PIN入力→認証Cookie取得→チャット送信→ナレッジを踏まえた応答までの一連の流れを確認した（フェーズ4で実施済み）
 - [x] （AI・ユーザー承認）`cloudflare-migration`ブランチをmainにマージした（CI/CDは未構築のためこのマージ自体はデプロイを起動しない。Workersは既に手動デプロイ済みで本番稼働中）
 - [x] （AI）ルート直下の`index.html`を、新URLへの転送ページに差し替えた（`design.md` 7章）。GitHub Pagesの再デプロイも完了し、`https://fukurose-jun02.github.io/fukuchan-app/`が新URLへ転送されることを確認済み
-- [ ] （ユーザー）LINEに登録しているリンクを新しいWorkers URL（`https://fukuchan-app.fukuchan-app.workers.dev`）に更新する
+- [x] （ユーザー）LINEに登録しているリンクを新しいWorkers URL（`https://fukuchan-app.fukuchan-app.workers.dev`）に更新した
 
 ## フェーズ6：並行稼働・検証期間（2週間）
 
@@ -107,7 +107,7 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 - [ ] 契約テスト（自動化できる範囲）がCI/CDでデプロイ前に実行され、通っている。429・503・静的アセット配信はフェーズ3の手動確認で担保されている（CI/CD自体が未構築のため未達）
 - [x] 秘密情報・PIN・認証トークンがコード・リポジトリ・ログに含まれていない
 - [x] 本番シークレットがコード（バージョン）とまとめて1回で投入されている（4回の個別`secret put`になっていない）
-- [ ] LINEのリンクが新URLになっている、旧URLは転送ページになっている
+- [x] LINEのリンクが新URLになっている、旧URLは転送ページになっている
 - [ ] 問題発生時に`pre-cloudflare-migration`タグ・`wrangler rollback`のいずれでも切り戻せることを確認済み
 - [ ] Cloud Run・旧GitHub Pages設定（2週間後）が停止・削除されている
 - [ ] ドキュメント（`fukuchan-knowledge`側3点・`fukuchan-app`側README）が新構成に更新されている
