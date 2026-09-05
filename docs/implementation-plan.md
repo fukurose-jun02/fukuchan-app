@@ -68,10 +68,13 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 
 ## フェーズ4：デプロイ・CI/CD
 
-- [ ] （ユーザー）GitHub Actions用に`CLOUDFLARE_API_TOKEN`・`CLOUDFLARE_ACCOUNT_ID`をリポジトリsecretsに登録する
-- [ ] （AI）`.github/workflows/deploy-worker.yml`を作成する（契約テスト→`wrangler deploy`の順で実行、`cloudflare-migration`ブランチではデプロイせずテストのみ、mainへのマージ時にデプロイする設定にする）
-- [ ] （ユーザー承認の上でAIが実行）`wrangler deploy --secrets-file .dev.vars`を実行する。コードとシークレット4件（`GEMINI_API_KEY`・`GITHUB_TOKEN`・`WORKER_PIN`・`AUTH_TOKEN_SECRET`）を1回の操作でまとめて投入・デプロイする（`.dev.vars`は`.env`形式のためそのまま指定できる、`design.md` 6-5）。`wrangler secret put`の個別呼び出しや、追加の`wrangler deploy`は行わない
-- [ ] （AI）デプロイ後、Workers URL（`*.workers.dev`）で`/health`・`/auth`・`/chat`一式を確認する（この時点ではまだmainにマージしない＝GitHub Pagesはそのまま）
+- [x] （ユーザー）Cloudflareアカウント作成・`wrangler login`完了（アカウント：jun.fukurose@gmail.com、Account ID：`2d0370bedab2c287111273a5ed69f4ab`）
+- [x] （ユーザー承認の上でAIが実行）`wrangler deploy --secrets-file .dev.vars`を実行し、手動デプロイに成功した
+  - Worker URL：`https://fukuchan-app.fukuchan-app.workers.dev`
+  - 初回デプロイ直後はworkers.devサブドメインのTLS証明書発行待ちで数分接続できなかったが、時間を置いて解消した
+- [x] （AI）本番URLで`/health`・`/auth`（正しいPINで200・誤ったPINで401）・`/chat`（200、応答あり）を確認した
+- [ ] （ユーザー）GitHub Actions用に`CLOUDFLARE_API_TOKEN`・`CLOUDFLARE_ACCOUNT_ID`をリポジトリsecretsに登録する（CI/CD自動化、未着手）
+- [ ] （AI）`.github/workflows/deploy-worker.yml`を作成する（契約テスト→`wrangler deploy --secrets-file`の順で実行、`cloudflare-migration`ブランチではデプロイせずテストのみ、mainへのマージ時にデプロイする設定にする）
 
 ## フェーズ5：切り替え
 
