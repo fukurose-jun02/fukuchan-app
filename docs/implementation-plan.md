@@ -78,10 +78,10 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 
 ## フェーズ5：切り替え
 
-- [ ] （AI・ユーザー）Workers URLで、PIN入力→認証Cookie取得→チャット送信→ナレッジを踏まえた応答までの一連の流れを確認する
-- [ ] （AI・ユーザー承認）`cloudflare-migration`ブランチをmainにマージする（CI/CDが動きWorkersに本番デプロイされる）
-- [ ] （ユーザー）LINEに登録しているリンクを新しいWorkers URLに更新する
-- [ ] （AI）ルート直下の`index.html`を、新URLへの転送ページに差し替える（`design.md` 7章）。この時点でGitHub Pagesは転送専用になる
+- [x] （AI・ユーザー）Workers URLで、PIN入力→認証Cookie取得→チャット送信→ナレッジを踏まえた応答までの一連の流れを確認した（フェーズ4で実施済み）
+- [x] （AI・ユーザー承認）`cloudflare-migration`ブランチをmainにマージした（CI/CDは未構築のためこのマージ自体はデプロイを起動しない。Workersは既に手動デプロイ済みで本番稼働中）
+- [x] （AI）ルート直下の`index.html`を、新URLへの転送ページに差し替えた（`design.md` 7章）。GitHub Pagesの再デプロイも完了し、`https://fukurose-jun02.github.io/fukuchan-app/`が新URLへ転送されることを確認済み
+- [ ] （ユーザー）LINEに登録しているリンクを新しいWorkers URL（`https://fukuchan-app.fukuchan-app.workers.dev`）に更新する
 
 ## フェーズ6：並行稼働・検証期間（2週間）
 
