@@ -1,0 +1,15 @@
+{
+  "name": "fukuchan-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "wrangler": "4.129.0",
+    "vitest": "4.1.11",
+    "@cloudflare/vitest-plugin": "1.1.4"
+  }
+}

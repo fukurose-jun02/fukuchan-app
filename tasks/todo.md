@@ -87,11 +87,12 @@
 - ローカルの`main`と追跡中の`origin/main`は同じコミット`1a65d44`を指している。
 - `pre-cloudflare-migration`タグと`cloudflare-migration`ブランチは未作成。
 
-後続フェーズまでに残る文書修正:
+後続フェーズまでに残っていた文書修正（対応済み）:
 
-- `/auth`のRate Limitを「例・程度」ではなく確定値へ統一する。前回合意に合わせる場合は`5回/60秒/IP`。
-- 初回本番投入を、同一Versionのupload・preview確認・deployという具体的な一続きの手順へ確定し、後続の別`wrangler deploy`との重複を解消する。
-- `design.md` 3章に残る「2週間後に転送ページへ変更」を、7〜8章および実装計画と同じ「カットオーバー直後」へ統一する。
+- [x] `/auth`のRate Limitを`5回/60秒/IP`へ統一
+- [x] 初回本番投入を`wrangler deploy --secrets-file .dev.vars`の単一操作へ統一
+- [x] 転送ページへの切り替え時期を「カットオーバー直後」へ統一
+- [x] 概要表に残っていた`wrangler secret put`表記（`design.md` 43行、`implementation-plan.md` 12行）を確定手順へ統一
 
 ## Phase 3 secret準備（2026-09-05）
 

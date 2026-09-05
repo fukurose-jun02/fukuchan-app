@@ -40,7 +40,7 @@ Worker1つの中に、静的アセット（`index.html`等）と`fetch`ハンド
 | フロント・バックエンドのホスティング | GitHub Pages（フロント）／Google Cloud Run（バックエンド）に分離 | Cloudflare Workers 1つに統合 |
 | デプロイ契機 | フロント：`.github/workflows/pages.yml`／バックエンド：手動`gcloud run deploy`等 | `wrangler deploy`（CI/CD化は6章参照） |
 | バックエンド実装言語 | Python（FastAPI） | JavaScript（Workers標準ランタイム、フレームワーク不使用） |
-| 秘密情報管理 | Cloud Runの環境変数 | 本番：`wrangler secret put`（Workers Secrets）／ローカル：`.dev.vars`（後述） |
+| 秘密情報管理 | Cloud Runの環境変数 | 本番：`wrangler deploy --secrets-file .dev.vars`（Workers Secrets、6-5章）／ローカル：`.dev.vars`（後述） |
 | ソース管理場所 | フロント：`fukuchan-app/index.html`／バックエンド：`fukuchan-knowledge/backend/`（Python） | 統合Workerプロジェクト：`fukuchan-app/`直下（後述の構成） |
 
 移行中は旧構成（Python版`backend/`・GitHub Pages）を並行稼働させ、切り替え確認後に削除する（8章）。
@@ -55,7 +55,7 @@ Workers単体構成にするため、静的ファイル（`index.html`等）とA
 
 - 移行作業はすべて作業ブランチ（例：`cloudflare-migration`）上で行い、mainへは**カットオーバー時にのみ**マージする
 - 作業開始時点のmainのHEADに`pre-cloudflare-migration`タグを打ち、いつでもその時点のGitHub Pages配信内容に戻せるようにする
-- ルート直下の`index.html`・`images/`は**移動（`git mv`）ではなくコピー**して`public/`配下に置く。カットオーバーが完了し2週間の並行稼働（8章）を経てから、ルート側を転送ページに差し替える
+- ルート直下の`index.html`・`images/`は**移動（`git mv`）ではなくコピー**して`public/`配下に置く。ルート側を転送ページに差し替えるのは**カットオーバー直後（8章）**の1回のみで、2週間の並行稼働期間の開始時点から転送ページになっている（2週間後に差し替えるのではない）
 
 ### フォルダ構成
 
@@ -76,7 +76,7 @@ fukuchan-app/
     └── deploy-worker.yml   ← 新規：Workersへのデプロイ用CI/CD（10章）
 ```
 
-`.gitignore`に`.dev.vars`を追加する。`public/`配下に静的アセットが正しく配信されること（`/images/fuku-icon.png`が200で返る等）を4-4の契約テストに含める。
+`.gitignore`に`.dev.vars`を追加する。`public/`配下に静的アセットが正しく配信されること（`/images/fuku-icon.png`が200で返る等）は、自動テストでは検証できないため`wrangler dev`での手動確認に含める（4-4）。
 
 ### wrangler.tomlのStatic Assets設定
 
@@ -90,10 +90,10 @@ Workers Static Assetsを使うため、`wrangler.toml`に最低限以下を明�
 
 | 名前 | 種別 | 設定場所 | 用途 |
 |---|---|---|---|
-| `GEMINI_API_KEY` | シークレット | `wrangler secret put` / `.dev.vars` | Gemini API呼び出し（`x-goog-api-key`ヘッダー） |
-| `GITHUB_TOKEN` | シークレット | `wrangler secret put` / `.dev.vars` | GitHub Contents API呼び出し |
-| `WORKER_PIN` | シークレット | `wrangler secret put` / `.dev.vars` | `/auth`でのPIN照合 |
-| `AUTH_TOKEN_SECRET` | シークレット | `wrangler secret put` / `.dev.vars` | 認証トークンのHMAC署名鍵（5章） |
+| `GEMINI_API_KEY` | シークレット | 本番：`wrangler deploy --secrets-file .dev.vars`／ローカル：`.dev.vars` | Gemini API呼び出し（`x-goog-api-key`ヘッダー） |
+| `GITHUB_TOKEN` | シークレット | 同上 | GitHub Contents API呼び出し |
+| `WORKER_PIN` | シークレット | 同上 | `/auth`でのPIN照合 |
+| `AUTH_TOKEN_SECRET` | シークレット | 同上 | 認証トークンのHMAC署名鍵（5章） |
 | `GITHUB_REPO` | 通常変数 | `wrangler.toml`の`[vars]` | ナレッジ取得先リポジトリ名（秘密情報ではないため平文でよい） |
 
 ## 4. API契約（正規仕様として確定）
@@ -167,24 +167,29 @@ SDKの`start_chat(history).send_message(message)`は「`history` + 今回の`mes
 
 レスポンスから`candidates[0].content.parts[0].text`を取り出して`reply`とする。候補が0件の場合は502として扱う。
 
-### 4-4. 契約テスト
+### 4-4. 契約テスト（実装確認済み）
 
-`src/index.js`に対する最小限の自動テストをVitestベースで用意する。テスト用パッケージは`@cloudflare/vitest-plugin`（[公式ドキュメント](https://developers.cloudflare.com/workers/testing/vitest-integration/)）を使う。Cloudflareの更新が速い領域のため、実装時にパッケージ名・設定方法に変更がないか公式ドキュメントで再確認する。以下を固定する。
+`src/index.js`に対する自動テストを`@cloudflare/vitest-plugin`（[公式ドキュメント](https://developers.cloudflare.com/workers/testing/vitest-integration/)）で実装し、`npx vitest run`で23件すべて成功することを確認済み。
 
-- `role`が`"user"`/`"model"`以外の場合の挙動（400を返す）
-- Gemini REST APIへのリクエストペイロードの形（モック環境でアサート、APIキーが`x-goog-api-key`ヘッダーで送られること含む）
+**自動テストで固定している範囲**
+- `validateChatBody`：`role`が`"user"`/`"model"`以外・`message`/`history`の長さ上限超過を弾くこと（純粋関数の単体テスト）
+- `createToken`/`verifyToken`：発行直後は有効、期限切れ・署名改ざん・別鍵署名は無効と判定されること
+- `timingSafeStringEqual`の等価判定
+- `statusForUpstreamError`：`TimeoutError`は504、それ以外（GitHub/Geminiの4xx・5xx・candidates 0件）は502にマッピングされること（6-3の表と一致）
 - `/health`のレスポンス形状
-- `/auth`：正しいPINでトークンが発行されること、誤ったPINで401になること
-- `/chat`：認証Cookie欠如・無効トークンで401、`message`/`history`上限超過で413、必須シークレット欠如で503になること
-- `/auth`・`/chat`：レート制限超過で429になること
-- 静的アセット（`/index.html`・`/images/fuku-icon.png`）が200で配信されること（3章）
-- 6-3の上流エラーマッピング表通りにステータスが返ること
+- `/auth`：正しいPINでCookie（`HttpOnly`・`SameSite=Strict`）が発行されること、誤ったPINで401になること、ボディが大きすぎる場合に413になること（`Content-Length`を付けない状態でも実バイト数で判定されること）
+- `/chat`：認証Cookie欠如・無効Cookieで401、`message`上限超過で413になること
+
+**自動テストの対象外（`wrangler dev`での手動確認に委ねる、実装計画フェーズ3）**
+- `@cloudflare/vitest-plugin`（2026年9月時点のv1.1.4）はGitHub/Gemini等への外部fetchをインターセプトする仕組み（`fetchMock`等）を提供していないため、実際のGitHub Contents API・Gemini API呼び出しを含む`/chat`の正常系・fail-closed系は自動テスト化できなかった
+- レート制限（429）・必須シークレット欠如（503）・静的アセット配信も、テスト環境でのバインディング上書きや`run_worker_first`スコープの都合上、自動テストには含めていない
+- これらは実装計画のフェーズ3で`wrangler dev`を使い、GitHubトークンを意図的に無効化する等の方法で手動確認する
 
 ## 5. 認証設計（再改訂）
 
 現行実装（`index.html:563`）は`const CORRECT_PIN = '<現行PIN>';`のように**正解のPINそのものが公開JSに埋め込まれており**、閲覧者はページのソースを見るだけでPINが分かってしまう。前回改訂案（PINをそのまま`Authorization`ヘッダーに載せて毎回照合する）は、サーバー側チェックを追加した点は前進だが、フロントエンドに正解PINを持たせる構造自体は変えておらず、`CORRECT_PIN`を消せていなかった。今回はこれを解消する。
 
-**現行PINは既にPublicリポジトリで公開済みのため、`WORKER_PIN`シークレットには現行PINを再利用せず、新しい値へローテーションしてから登録する。**
+**PIN値の決定（残余リスクとして受容）**：現行PINは既にPublicリポジトリのコミット履歴で公開済みであり、AIからは新しい値へのローテーションを推奨した。しかしユーザーは「家族で覚えやすい値を優先したい」という理由で、**現行PIN（`1122`）をそのまま`WORKER_PIN`に設定する方針を最終決定**した。この結果、`/auth`によるサーバー側認証を導入しても、PINの値そのものは既に公開されているため、知っている第三者に対する実質的な保護効果は無い。この残余リスクを受容した上で、認証の仕組み自体（Cookie発行・fail-closed・レート制限等）は他のセキュリティ対策として引き続き有効に機能する。
 
 ### 方式：`/auth`によるトークン発行（Cookieベースに変更）
 
@@ -244,8 +249,8 @@ Cloudflareの「Rate Limiting Rules」（ダッシュボードのWAF機能）は
 
 | エンドポイント | 制限の目安 | 備考 |
 |---|---|---|
-| `POST /auth` | 60秒窓で一定回数（例：10回） | 拠点分散により名目値より緩くなり得るが、無制限の高速総当たりは防げる（5章の残余リスク参照） |
-| `POST /chat` | 60秒窓で一定回数（例：20回） | 認証済み利用者の通常利用を妨げない範囲で、Gemini API濫用コストを抑える |
+| `POST /auth` | 60秒窓・5回・IP単位（確定値） | 拠点分散により名目値より緩くなり得るが、無制限の高速総当たりは防げる（5章の残余リスク参照） |
+| `POST /chat` | 60秒窓・20回・IP単位（確定値） | 認証済み利用者の通常利用を妨げない範囲で、Gemini API濫用コストを抑える |
 
 制限超過時は429を返す。
 
@@ -270,7 +275,7 @@ Cloudflareの「Rate Limiting Rules」（ダッシュボードのWAF機能）は
 ### 6-5. 必須シークレットの検証・投入方法（改訂）
 
 - Worker起動時（各リクエストの先頭）に`GEMINI_API_KEY`・`GITHUB_TOKEN`・`WORKER_PIN`・`AUTH_TOKEN_SECRET`が全て設定されているか確認し、1つでも欠けていれば503を返す（fail-closed）。設定漏れのまま本番デプロイされて曖昧なエラーになる事態を防ぐ
-- **初回の本番投入は、`wrangler secret put`を4回個別に呼ばない。** `secret put`は1回ごとに即時デプロイを伴うため、4回に分けると「一部のシークレットだけ設定された中間状態」のバージョンが順番に公開されてしまう（6-5の503チェックで致命的な誤動作は防げるが、意図しない中間デプロイが複数回発生すること自体を避けたい）。コードとシークレットをまとめて1つのバージョンとして投入する方法（`--secrets-file`等、Cloudflareが提供する一括投入の仕組み）を使う。正確なコマンド・オプション名は実装時に[Cloudflare公式ドキュメント](https://developers.cloudflare.com/workers/configuration/secrets/)で確認する
+- **初回の本番投入は、`wrangler secret put`を4回個別に呼ばない。** `secret put`は1回ごとに即時デプロイを伴うため、4回に分けると「一部のシークレットだけ設定された中間状態」のバージョンが順番に公開されてしまう（6-5の503チェックで致命的な誤動作は防げるが、意図しない中間デプロイが複数回発生すること自体を避けたい）。代わりに`wrangler deploy --secrets-file .dev.vars`を使う。`--secrets-file`は`.env`形式のファイルを受け取り、コードとシークレット（最大100件まで）を1回の操作でまとめて投入・デプロイできる（[Cloudflare公式](https://developers.cloudflare.com/workers/configuration/secrets/)）。`.dev.vars`自体が`.env`形式のため、そのまま指定できる。これ以降、別途`wrangler deploy`を単独実行する必要はない
 - `wrangler.toml`側で必須シークレット名を宣言できる機能があれば使い、デプロイ前の検証を強化する
 
 ### 6-6. ログ・監視（改訂）

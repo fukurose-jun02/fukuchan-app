@@ -1,0 +1,38 @@
+name = "fukuchan-app"
+main = "src/index.js"
+compatibility_date = "2026-09-05"
+
+# ふくちゃんトーク：静的ファイル配信 + /auth・/chat・/health API を1つのWorkerに統合
+# design.md の ADR（0章）参照
+
+[vars]
+GITHUB_REPO = "fukurose-jun02/fukuchan-knowledge"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+# 静的ファイルにマッチしないパスは元々Workerへフォールバックするが、
+# API側の3経路は明示的に必ずWorkerを通す（design.md 3章）
+run_worker_first = ["/auth", "/chat", "/health"]
+
+# PIN総当たり対策（design.md 5章・6-2）。period は 10 か 60 のみ設定可能。
+[[ratelimits]]
+name = "AUTH_RATE_LIMITER"
+namespace_id = "1001"
+[ratelimits.simple]
+limit = 5
+period = 60
+
+[[ratelimits]]
+name = "CHAT_RATE_LIMITER"
+namespace_id = "1002"
+[ratelimits.simple]
+limit = 20
+period = 60
+
+# 以下はシークレットのため wrangler.toml には書かない（.dev.vars / wrangler secret で管理）
+# GEMINI_API_KEY, GITHUB_TOKEN, WORKER_PIN, AUTH_TOKEN_SECRET
