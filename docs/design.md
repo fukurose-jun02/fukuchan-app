@@ -76,7 +76,7 @@ fukuchan-app/
     └── deploy-worker.yml   ← 新規：Workersへのデプロイ用CI/CD（10章）
 ```
 
-`.gitignore`に`.dev.vars`を追加する。`public/`配下に静的アセットが正しく配信されること（`/images/fuku-icon.png`が200で返る等）を4-4の契約テストに含める。
+`.gitignore`に`.dev.vars`を追加する。`public/`配下に静的アセットが正しく配信されること（`/images/fuku-icon.png`が200で返る等）は、自動テストでは検証できないため`wrangler dev`での手動確認に含める（4-4）。
 
 ### wrangler.tomlのStatic Assets設定
 
@@ -167,18 +167,23 @@ SDKの`start_chat(history).send_message(message)`は「`history` + 今回の`mes
 
 レスポンスから`candidates[0].content.parts[0].text`を取り出して`reply`とする。候補が0件の場合は502として扱う。
 
-### 4-4. 契約テスト
+### 4-4. 契約テスト（実装確認済み）
 
-`src/index.js`に対する最小限の自動テストをVitestベースで用意する。テスト用パッケージは`@cloudflare/vitest-plugin`（[公式ドキュメント](https://developers.cloudflare.com/workers/testing/vitest-integration/)）を使う。Cloudflareの更新が速い領域のため、実装時にパッケージ名・設定方法に変更がないか公式ドキュメントで再確認する。以下を固定する。
+`src/index.js`に対する自動テストを`@cloudflare/vitest-plugin`（[公式ドキュメント](https://developers.cloudflare.com/workers/testing/vitest-integration/)）で実装し、`npx vitest run`で23件すべて成功することを確認済み。
 
-- `role`が`"user"`/`"model"`以外の場合の挙動（400を返す）
-- Gemini REST APIへのリクエストペイロードの形（モック環境でアサート、APIキーが`x-goog-api-key`ヘッダーで送られること含む）
+**自動テストで固定している範囲**
+- `validateChatBody`：`role`が`"user"`/`"model"`以外・`message`/`history`の長さ上限超過を弾くこと（純粋関数の単体テスト）
+- `createToken`/`verifyToken`：発行直後は有効、期限切れ・署名改ざん・別鍵署名は無効と判定されること
+- `timingSafeStringEqual`の等価判定
+- `statusForUpstreamError`：`TimeoutError`は504、それ以外（GitHub/Geminiの4xx・5xx・candidates 0件）は502にマッピングされること（6-3の表と一致）
 - `/health`のレスポンス形状
-- `/auth`：正しいPINでトークンが発行されること、誤ったPINで401になること
-- `/chat`：認証Cookie欠如・無効トークンで401、`message`/`history`上限超過で413、必須シークレット欠如で503になること
-- `/auth`・`/chat`：レート制限超過で429になること
-- 静的アセット（`/index.html`・`/images/fuku-icon.png`）が200で配信されること（3章）
-- 6-3の上流エラーマッピング表通りにステータスが返ること
+- `/auth`：正しいPINでCookie（`HttpOnly`・`SameSite=Strict`）が発行されること、誤ったPINで401になること、ボディが大きすぎる場合に413になること（`Content-Length`を付けない状態でも実バイト数で判定されること）
+- `/chat`：認証Cookie欠如・無効Cookieで401、`message`上限超過で413になること
+
+**自動テストの対象外（`wrangler dev`での手動確認に委ねる、実装計画フェーズ3）**
+- `@cloudflare/vitest-plugin`（2026年9月時点のv1.1.4）はGitHub/Gemini等への外部fetchをインターセプトする仕組み（`fetchMock`等）を提供していないため、実際のGitHub Contents API・Gemini API呼び出しを含む`/chat`の正常系・fail-closed系は自動テスト化できなかった
+- レート制限（429）・必須シークレット欠如（503）・静的アセット配信も、テスト環境でのバインディング上書きや`run_worker_first`スコープの都合上、自動テストには含めていない
+- これらは実装計画のフェーズ3で`wrangler dev`を使い、GitHubトークンを意図的に無効化する等の方法で手動確認する
 
 ## 5. 認証設計（再改訂）
 

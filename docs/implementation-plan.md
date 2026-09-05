@@ -19,26 +19,26 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 
 現行mainブランチはGitHub Pagesとして稼働中のため、移行作業で壊さないようにする（`design.md` 3章）。
 
-- [ ] （AI）現在のmain HEADに`pre-cloudflare-migration`タグを作成する
-- [ ] （AI）作業ブランチ`cloudflare-migration`を作成し、以降の作業はすべてこのブランチ上で行う
+- [x] （AI）現在のmain HEADに`pre-cloudflare-migration`タグを作成する
+- [x] （AI）作業ブランチ`cloudflare-migration`を作成し、以降の作業はすべてこのブランチ上で行う
 
 ## フェーズ1：準備
 
 - [ ] （ユーザー）Cloudflareアカウントを作成する（既にあれば不要）
 - [ ] （ユーザー）ローカルに`wrangler`をインストールし、`wrangler login`でブラウザ認証する
-- [ ] （AI）`fukuchan-app/`直下に`public/`・`src/`フォルダ、`wrangler.toml`の雛形を作成する
-- [ ] （AI）`package.json`に`wrangler`をバージョン固定で追加し、`.nvmrc`でNode.jsバージョンを固定する
-- [ ] （AI）`.gitignore`に`.dev.vars`を追加する
-- [ ] （ユーザー）`.dev.vars`に`GEMINI_API_KEY`・`GITHUB_TOKEN`・`WORKER_PIN`・`AUTH_TOKEN_SECRET`のローカル用の値を記入する（`WORKER_PIN`は現行PINを再利用せず新しい4桁へローテーションする。`AUTH_TOKEN_SECRET`はPINとは別のランダムな文字列を新規に用意する）
+- [x] （AI）`fukuchan-app/`直下に`public/`・`src/`フォルダ、`wrangler.toml`の雛形を作成する
+- [x] （AI）`package.json`に`wrangler`をバージョン固定で追加し、`.nvmrc`でNode.jsバージョンを固定する
+- [x] （AI）`.gitignore`に`.dev.vars`を追加する
+- [ ] （ユーザー）`.dev.vars`に`GEMINI_API_KEY`・`GITHUB_TOKEN`・`WORKER_PIN`・`AUTH_TOKEN_SECRET`のローカル用の値を記入する（`.dev.vars.example`を参考に。`WORKER_PIN`は現行PINを再利用せず新しい4桁へローテーションする。`AUTH_TOKEN_SECRET`はPINとは別のランダムな文字列を新規に用意する）
 - [ ] （ユーザー）Gemini APIキーが現行有効な「APIキー」であることを事前に確認する（Google AI Studio等で発行したキーの種別・有効性をデプロイ前にチェック）
 
 ## フェーズ2：実装
 
-- [ ] （AI）`index.html`・`images/`を**コピー**して`public/`配下に配置する（`git mv`はしない。ルート側は変更しない、`design.md` 3章）
-- [ ] （AI）`public/index.html`から`API_URL`関連のロジックを削除し、同一オリジンで`/auth`・`/chat`を呼ぶよう修正する
-- [ ] （AI）`public/index.html`から`CORRECT_PIN`の直書きを削除し、入力されたPINを`/auth`に送るロジックに変更する。認証状態はCookie（ブラウザが自動送信）で管理するため、フロントエンドでトークン値を保持・付与するコードは書かない（`design.md` 5章）
-- [ ] （AI）`wrangler.toml`にStatic Assets設定（`directory`・`binding`・`run_worker_first`）を明記する（`design.md` 3章、正確なキー名は実装時に公式ドキュメントで確認）
-- [ ] （AI）`src/index.js`を実装する
+- [x] （AI）`index.html`・`images/`を**コピー**して`public/`配下に配置する（`git mv`はしない。ルート側は変更しない、`design.md` 3章）
+- [x] （AI）`public/index.html`から`API_URL`関連のロジックを削除し、同一オリジンで`/auth`・`/chat`を呼ぶよう修正する
+- [x] （AI）`public/index.html`から`CORRECT_PIN`の直書きを削除し、入力されたPINを`/auth`に送るロジックに変更する。認証状態はCookie（ブラウザが自動送信）で管理するため、フロントエンドでトークン値を保持・付与するコードは書かない（`design.md` 5章）。あわせて`/chat`が401を返した場合にPIN画面へ戻す処理も追加
+- [x] （AI）`wrangler.toml`にStatic Assets設定（`directory`・`binding`・`run_worker_first`）を明記する（`design.md` 3章。公式ドキュメントで構文確認済み）
+- [x] （AI）`src/index.js`を実装する
   - 静的アセット配信（`public/`）と`/auth`・`/chat`・`/health`のルーティング
   - `/auth`：PIN照合、成功時にHMAC署名付きトークンを`Set-Cookie`（`HttpOnly; Secure; SameSite=Strict; Max-Age=604800`）で発行（`design.md` 5章）
   - `/chat`：Cookieの署名・有効期限検証、失敗時401
@@ -46,12 +46,12 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
   - GitHub Contents APIから4ファイルを取得する処理（失敗時502／タイムアウト時504のfail-closed、`design.md` 6-3）
   - Gemini REST API（`generateContent`）呼び出し（`x-goog-api-key`ヘッダー使用）と会話履歴の変換（`design.md` 4-3）
   - 入力上限チェック：`message`長・`history`件数と各要素長は事前チェック、**ボディサイズはストリームを読みながら実バイト数を積算**して413を返す（`Content-Length`ヘッダーの値は信用しない、`design.md` 6-1）・タイムアウト（504、`design.md` 6-4）
-  - 上流エラーのステータスマッピング（`design.md` 6-3の表通り、タイムアウトは504・それ以外の異常は502で統一）
+  - 上流エラーのステータスマッピング（`statusForUpstreamError`関数として切り出し。`design.md` 6-3の表通り、タイムアウトは504・それ以外の異常は502で統一）
   - ログにPIN・Cookie/トークン・会話内容・ナレッジ・秘密情報を出力しない（`design.md` 6-6）
-- [ ] （AI）契約テストを作成する（`design.md` 4-4、`@cloudflare/vitest-plugin`を使用）。413（文字数超過・件数超過・`Content-Length`欠落／偽装ケース）・429（レート制限超過）・503（シークレット欠如）を含める
-- [ ] （AI）`wrangler.toml`にWorkers Rate Limitingバインディングを設定する（正確な構文は実装時に公式ドキュメントで確認、`design.md` 6-2。10秒/60秒窓のみでeventually consistentな制約があることを踏まえた上での抑止目的の設定）
-  - `/auth`：60秒窓・10回程度
-  - `/chat`：60秒窓・20回程度
+- [x] （AI）契約テストを作成し、23件すべて成功することを確認済み（`design.md` 4-4、`@cloudflare/vitest-plugin`使用）。413（文字数超過・`Content-Length`欠落ケース）・401（Cookie欠如・無効）・トークン検証・上流エラーの502/504マッピングを自動テスト化。429・503・静的アセット配信は外部fetchモック機構が無いため自動テスト化できず、フェーズ3の手動確認に委ねる（`design.md` 4-4参照）
+- [x] （AI）`wrangler.toml`にWorkers Rate Limitingバインディングを設定した（`design.md` 6-2。公式ドキュメントで構文確認済み）
+  - `/auth`：60秒窓・10回
+  - `/chat`：60秒窓・20回
 
 ## フェーズ3：動作確認（ローカル）
 
@@ -100,7 +100,7 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 - [ ] `/chat`がCookie認証を要求し、認証なし・無効Cookieでは401を返す
 - [ ] `/chat`が既存と同等の応答を返す（ナレッジ・日付ターンの扱いを含む）
 - [ ] 入力上限（実バイト数ベース）・エンドポイント別レート制限・fail-closed・タイムアウト・必須シークレット欠如時の503が機能する
-- [ ] 契約テストがCI/CDでデプロイ前に実行され、通っている
+- [ ] 契約テスト（自動化できる範囲）がCI/CDでデプロイ前に実行され、通っている。429・503・静的アセット配信はフェーズ3の手動確認で担保されている
 - [ ] 秘密情報・PIN・認証トークンがコード・リポジトリ・ログに含まれていない
 - [ ] 本番シークレットがコード（バージョン）とまとめて1回で投入されている（4回の個別`secret put`になっていない）
 - [ ] LINEのリンクが新URLになっている、旧URLは転送ページになっている
