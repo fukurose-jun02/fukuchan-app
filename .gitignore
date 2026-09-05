@@ -8,3 +8,11 @@ finance.csv
 
 # 入れ子になっているPrivateリポジトリ（別管理）を誤って本リポジトリに取り込まないための保険
 /fukuchan-knowledge/
+
+# Cloudflare Workers / ローカル開発用シークレット
+/.dev.vars
+node_modules/
+.wrangler/
+
+# ローカル専用手順書（実APIキー・トークンを含むためPublicリポジトリへ追加しない）
+/fukuchan-claude-code-instructions.md

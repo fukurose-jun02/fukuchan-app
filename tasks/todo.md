@@ -92,3 +92,26 @@
 - `/auth`のRate Limitを「例・程度」ではなく確定値へ統一する。前回合意に合わせる場合は`5回/60秒/IP`。
 - 初回本番投入を、同一Versionのupload・preview確認・deployという具体的な一続きの手順へ確定し、後続の別`wrangler deploy`との重複を解消する。
 - `design.md` 3章に残る「2週間後に転送ページへ変更」を、7〜8章および実装計画と同じ「カットオーバー直後」へ統一する。
+
+## Phase 3 secret準備（2026-09-05）
+
+- [x] ローカル既存資料から`GEMINI_API_KEY`と`GITHUB_TOKEN`を値非表示で`.dev.vars`へ転記
+- [x] 公開済みPINと異なる新しい4桁`WORKER_PIN`を生成
+- [x] 会話に露出した値を再利用せず、256-bit相当の`AUTH_TOKEN_SECRET`を新規生成
+- [x] `.dev.vars`の4キー、形式、ファイル権限600、gitignoreを確認
+- [x] 既存secretを含むローカル専用手順書をgitignoreへ追加
+- [x] 自動テスト23件の成功を確認
+
+## Phase 3 ローカル動作確認（2026-09-05）
+
+状態: 一部合格。外部API資格情報の更新待ちで正常系`/chat`は未完了。
+
+- [x] `/health` 200
+- [x] `/auth` 正しいPINで200・Cookie発行、誤ったPINで401
+- [x] `/chat` Cookieなしで401
+- [x] 長文で413、不正roleで413
+- [x] `/`と`/images/fuku-icon.png`が200
+- [x] 無効なGitHub資格情報を502でfail-closed
+- [ ] 新しいGitHub fine-grained PAT（対象repo限定、Contents read-only）へ更新
+- [ ] 新しいGemini Auth keyへ更新
+- [ ] 有効な資格情報で`/chat`正常系が200となることを確認
