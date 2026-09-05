@@ -13,3 +13,6 @@ finance.csv
 /.dev.vars
 node_modules/
 .wrangler/
+
+# ローカル専用手順書（実APIキー・トークンを含むためPublicリポジトリへ追加しない）
+/fukuchan-claude-code-instructions.md
