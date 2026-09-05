@@ -29,7 +29,7 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 - [x] （AI）`fukuchan-app/`直下に`public/`・`src/`フォルダ、`wrangler.toml`の雛形を作成する
 - [x] （AI）`package.json`に`wrangler`をバージョン固定で追加し、`.nvmrc`でNode.jsバージョンを固定する
 - [x] （AI）`.gitignore`に`.dev.vars`を追加する
-- [ ] （ユーザー）`.dev.vars`に`GEMINI_API_KEY`・`GITHUB_TOKEN`・`WORKER_PIN`・`AUTH_TOKEN_SECRET`のローカル用の値を記入する（`.dev.vars.example`を参考に。`WORKER_PIN`は現行PINを再利用せず新しい4桁へローテーションする。`AUTH_TOKEN_SECRET`はPINとは別のランダムな文字列を新規に用意する）
+- [ ] （ユーザー）`.dev.vars`に`GEMINI_API_KEY`・`GITHUB_TOKEN`・`WORKER_PIN`・`AUTH_TOKEN_SECRET`のローカル用の値を記入する（`.dev.vars.example`を参考に。`WORKER_PIN`は現行PIN`1122`を維持する方針で確定済み（`design.md` 5章、残余リスク受容）。`AUTH_TOKEN_SECRET`はPINとは別のランダムな文字列を新規に用意する）
 - [ ] （ユーザー）Gemini APIキーが現行有効な「APIキー」であることを事前に確認する（Google AI Studio等で発行したキーの種別・有効性をデプロイ前にチェック）
 
 ## フェーズ2：実装
@@ -96,7 +96,7 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 
 - [ ] Cloudflare Workersでフロントエンド（静的ファイル）が表示され、PIN入力→認証Cookie取得の流れが動作する
 - [ ] フロントエンドのコードに正解PINが含まれていない
-- [ ] `WORKER_PIN`が現行の公開済みPINから新しい値にローテーションされている
+- [x] `WORKER_PIN`の扱い（現行PIN`1122`を維持、残余リスク受容）がユーザーの最終決定として確定している
 - [ ] `/chat`がCookie認証を要求し、認証なし・無効Cookieでは401を返す
 - [ ] `/chat`が既存と同等の応答を返す（ナレッジ・日付ターンの扱いを含む）
 - [ ] 入力上限（実バイト数ベース）・エンドポイント別レート制限・fail-closed・タイムアウト・必須シークレット欠如時の503が機能する
