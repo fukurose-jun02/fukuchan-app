@@ -1,0 +1,10 @@
+.DS_Store
+
+# 個人情報・機密データを誤ってPublicリポジトリに含めないための保険
+# 実データは fukurose-jun02/fukuchan-knowledge（Private）で一元管理する
+family.md
+contract.md
+finance.csv
+
+# 入れ子になっているPrivateリポジトリ（別管理）を誤って本リポジトリに取り込まないための保険
+/fukuchan-knowledge/
