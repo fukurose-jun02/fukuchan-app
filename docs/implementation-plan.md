@@ -50,8 +50,8 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
   - ログにPIN・Cookie/トークン・会話内容・ナレッジ・秘密情報を出力しない（`design.md` 6-6）
 - [x] （AI）契約テストを作成し、23件すべて成功することを確認済み（`design.md` 4-4、`@cloudflare/vitest-plugin`使用）。413（文字数超過・`Content-Length`欠落ケース）・401（Cookie欠如・無効）・トークン検証・上流エラーの502/504マッピングを自動テスト化。429・503・静的アセット配信は外部fetchモック機構が無いため自動テスト化できず、フェーズ3の手動確認に委ねる（`design.md` 4-4参照）
 - [x] （AI）`wrangler.toml`にWorkers Rate Limitingバインディングを設定した（`design.md` 6-2。公式ドキュメントで構文確認済み）
-  - `/auth`：60秒窓・10回
-  - `/chat`：60秒窓・20回
+  - `/auth`：60秒窓・5回（確定値）
+  - `/chat`：60秒窓・20回（確定値）
 
 ## フェーズ3：動作確認（ローカル）
 
@@ -69,8 +69,8 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 
 - [ ] （ユーザー）GitHub Actions用に`CLOUDFLARE_API_TOKEN`・`CLOUDFLARE_ACCOUNT_ID`をリポジトリsecretsに登録する
 - [ ] （AI）`.github/workflows/deploy-worker.yml`を作成する（契約テスト→`wrangler deploy`の順で実行、`cloudflare-migration`ブランチではデプロイせずテストのみ、mainへのマージ時にデプロイする設定にする）
-- [ ] （ユーザー承認の上でAIが実行）本番シークレットを登録する。`wrangler secret put`を4回individualに呼ぶ運用はせず、コードとシークレットを1つのバージョンとしてまとめて投入する方法（`--secrets-file`等）を使う。正確な手順は実装時に[公式ドキュメント](https://developers.cloudflare.com/workers/configuration/secrets/)で確認する（`design.md` 6-5）
-- [ ] （AI）`wrangler deploy`で一度手動デプロイし、Workers URL（`*.workers.dev`）で`/health`・`/auth`・`/chat`一式を確認する（この時点ではまだmainにマージしない＝GitHub Pagesはそのまま）
+- [ ] （ユーザー承認の上でAIが実行）`wrangler deploy --secrets-file .dev.vars`を実行する。コードとシークレット4件（`GEMINI_API_KEY`・`GITHUB_TOKEN`・`WORKER_PIN`・`AUTH_TOKEN_SECRET`）を1回の操作でまとめて投入・デプロイする（`.dev.vars`は`.env`形式のためそのまま指定できる、`design.md` 6-5）。`wrangler secret put`の個別呼び出しや、追加の`wrangler deploy`は行わない
+- [ ] （AI）デプロイ後、Workers URL（`*.workers.dev`）で`/health`・`/auth`・`/chat`一式を確認する（この時点ではまだmainにマージしない＝GitHub Pagesはそのまま）
 
 ## フェーズ5：切り替え
 

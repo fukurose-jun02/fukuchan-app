@@ -24,7 +24,7 @@ run_worker_first = ["/auth", "/chat", "/health"]
 name = "AUTH_RATE_LIMITER"
 namespace_id = "1001"
 [ratelimits.simple]
-limit = 10
+limit = 5
 period = 60
 
 [[ratelimits]]
