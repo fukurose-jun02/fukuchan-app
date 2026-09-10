@@ -38,9 +38,9 @@ Worker1つの中に、静的アセット（`index.html`等）と`fetch`ハンド
 | 役割 | 移行前 | 移行後 |
 |---|---|---|
 | フロント・バックエンドのホスティング | GitHub Pages（フロント）／Google Cloud Run（バックエンド）に分離 | Cloudflare Workers 1つに統合 |
-| デプロイ契機 | フロント：`.github/workflows/pages.yml`／バックエンド：手動`gcloud run deploy`等 | `wrangler deploy`（CI/CD化は6章参照） |
+| デプロイ契機 | フロント：`.github/workflows/pages.yml`／バックエンド：手動`gcloud run deploy`等 | GitHub Actionsで契約テスト後に`wrangler deploy`（10章） |
 | バックエンド実装言語 | Python（FastAPI） | JavaScript（Workers標準ランタイム、フレームワーク不使用） |
-| 秘密情報管理 | Cloud Runの環境変数 | 本番：`wrangler deploy --secrets-file .dev.vars`（Workers Secrets、6-5章）／ローカル：`.dev.vars`（後述） |
+| 秘密情報管理 | Cloud Runの環境変数 | 本番：Cloudflare Workers Secrets（初回・値更新時のみ`--secrets-file`、6-5章）／ローカル：`.dev.vars` |
 | ソース管理場所 | フロント：`fukuchan-app/index.html`／バックエンド：`fukuchan-knowledge/backend/`（Python） | 統合Workerプロジェクト：`fukuchan-app/`直下（後述の構成） |
 
 移行中は旧構成（Python版`backend/`・GitHub Pages）を並行稼働させ、切り替え確認後に削除する（8章）。
@@ -90,7 +90,7 @@ Workers Static Assetsを使うため、`wrangler.toml`に最低限以下を明�
 
 | 名前 | 種別 | 設定場所 | 用途 |
 |---|---|---|---|
-| `GEMINI_API_KEY` | シークレット | 本番：`wrangler deploy --secrets-file .dev.vars`／ローカル：`.dev.vars` | Gemini API呼び出し（`x-goog-api-key`ヘッダー） |
+| `GEMINI_API_KEY` | シークレット | 本番：Cloudflare Workers Secrets／ローカル：`.dev.vars` | Gemini API呼び出し（`x-goog-api-key`ヘッダー） |
 | `GITHUB_TOKEN` | シークレット | 同上 | GitHub Contents API呼び出し |
 | `WORKER_PIN` | シークレット | 同上 | `/auth`でのPIN照合 |
 | `AUTH_TOKEN_SECRET` | シークレット | 同上 | 認証トークンのHMAC署名鍵（5章） |
@@ -275,8 +275,9 @@ Cloudflareの「Rate Limiting Rules」（ダッシュボードのWAF機能）は
 ### 6-5. 必須シークレットの検証・投入方法（改訂）
 
 - Worker起動時（各リクエストの先頭）に`GEMINI_API_KEY`・`GITHUB_TOKEN`・`WORKER_PIN`・`AUTH_TOKEN_SECRET`が全て設定されているか確認し、1つでも欠けていれば503を返す（fail-closed）。設定漏れのまま本番デプロイされて曖昧なエラーになる事態を防ぐ
-- **初回の本番投入は、`wrangler secret put`を4回個別に呼ばない。** `secret put`は1回ごとに即時デプロイを伴うため、4回に分けると「一部のシークレットだけ設定された中間状態」のバージョンが順番に公開されてしまう（6-5の503チェックで致命的な誤動作は防げるが、意図しない中間デプロイが複数回発生すること自体を避けたい）。代わりに`wrangler deploy --secrets-file .dev.vars`を使う。`--secrets-file`は`.env`形式のファイルを受け取り、コードとシークレット（最大100件まで）を1回の操作でまとめて投入・デプロイできる（[Cloudflare公式](https://developers.cloudflare.com/workers/configuration/secrets/)）。`.dev.vars`自体が`.env`形式のため、そのまま指定できる。これ以降、別途`wrangler deploy`を単独実行する必要はない
-- `wrangler.toml`側で必須シークレット名を宣言できる機能があれば使い、デプロイ前の検証を強化する
+- **初回の本番投入と値の更新時は、`wrangler secret put`を4回個別に呼ばない。** `wrangler deploy --secrets-file .dev.vars`でコードと4つのシークレットを1回の操作で投入する（[Cloudflare公式](https://developers.cloudflare.com/workers/configuration/secrets/)）
+- 通常のCI/CDでは`--secrets-file`を使わず`wrangler deploy`だけを実行し、Cloudflare側に登録済みのWorkers Secretsを保持する。アプリの秘密情報をGitHub Actions Secretsへ複製しない
+- `wrangler.toml`の`[secrets].required`に必須4項目の名前だけを宣言し、値を露出させずデプロイ前に設定漏れを検知する
 
 ### 6-6. ログ・監視（改訂）
 
@@ -310,8 +311,9 @@ Cloudflareの「Rate Limiting Rules」（ダッシュボードのWAF機能）は
 
 ## 10. CI/CD（新設）
 
-- `.github/workflows/deploy-worker.yml`を新設し、mainブランチへのpush時に`wrangler deploy`を実行する
+- `.github/workflows/deploy-worker.yml`で、Pull Requestでは契約テストのみ、mainブランチへのpushと手動実行では契約テスト成功後に`wrangler deploy`を実行する
 - デプロイに必要な`CLOUDFLARE_API_TOKEN`・`CLOUDFLARE_ACCOUNT_ID`はGitHub Actionsのrepository secretsに登録する（ユーザーがGitHub側で設定、11章）
+- アプリ本体の4つの秘密情報はCloudflare Workers Secretsを正本とし、GitHub Actionsには登録しない
 - 4-4の契約テストをデプロイ前のステップとして実行し、失敗時はデプロイしない
 
 ## 11. ドキュメント更新（完了条件に追加）

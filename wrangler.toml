@@ -8,6 +8,11 @@ compatibility_date = "2026-09-05"
 [vars]
 GITHUB_REPO = "fukurose-jun02/fukuchan-knowledge"
 
+# デプロイ時に、本番Workerへ必要なSecretsがすべて設定済みか検証する。
+# 値はCloudflare Workers Secretsで管理し、このファイルやGitHubには保存しない。
+[secrets]
+required = ["GEMINI_API_KEY", "GITHUB_TOKEN", "WORKER_PIN", "AUTH_TOKEN_SECRET"]
+
 [observability]
 enabled = true
 head_sampling_rate = 1
@@ -34,5 +39,5 @@ namespace_id = "1002"
 limit = 20
 period = 60
 
-# 以下はシークレットのため wrangler.toml には書かない（.dev.vars / wrangler secret で管理）
-# GEMINI_API_KEY, GITHUB_TOKEN, WORKER_PIN, AUTH_TOKEN_SECRET
+# 上記4項目の値はシークレットのため wrangler.toml には書かない
+# （ローカルは .dev.vars、本番はCloudflare Workers Secretsで管理）
