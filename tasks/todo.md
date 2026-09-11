@@ -378,3 +378,17 @@
 - 資産集計は預金1,000,000円、投資信託500,000円、負債-200,000円として確認した。
 - D1スキーマ・デモデータはCloudflare上に反映済み。Secrets、GitHub OAuth App、Workerデプロイ、`FINANCE_TOOL_ENABLED=true`への切り替えは未実施。
 - MCP実装一式は`codex/issue-2-cloudflare-cicd`の`bb64747`から`main`へfast-forward統合済みである。
+
+## main統合と回帰検証（2026-09-12）
+
+- [x] `codex/issue-2-cloudflare-cicd`を`main`へfast-forward統合する
+- [x] 退避していたデモ投入ログを統合後の`tasks/todo.md`へ戻す
+- [x] 統合後に全テストとroot/finance Workerのdry-runを実行する
+
+### Review
+
+- `main`のHEADは`cb8714f`（実装統合後の作業ログコミット）。作業ツリーはクリーン。
+- `npm test`：6ファイル、57テストすべて成功。
+- root Worker dry-run：`FINANCE_SERVICE`（`FinanceMcpApi` entrypoint）と機能フラグfalseを確認。
+- finance Worker dry-run：リモートD1とKVバインディングを確認。
+- GitHub OAuth App、Secrets、本番Workerデプロイ、`FINANCE_TOOL_ENABLED=true`への切り替えは未実施。
