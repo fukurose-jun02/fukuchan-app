@@ -111,13 +111,16 @@ fukuchan-app/
 
 ## デプロイフロー（2026年9月〜）
 
-現在は手動デプロイで運用している。CI/CD（GitHub Actions経由の自動デプロイ）は[Issue #2](https://github.com/fukurose-jun02/fukuchan-app/issues/2)として計画中、未着手。
+GitHub Actionsが契約テストを実行し、`main`ブランチへのpush時はテスト成功後にCloudflare Workersへ自動デプロイする。Pull Requestではデプロイせず、契約テストだけを実行する。
+
+GitHub ActionsにはCloudflareへのデプロイ専用認証情報（`CLOUDFLARE_API_TOKEN`・`CLOUDFLARE_ACCOUNT_ID`）のみを登録する。アプリが使用する4つの秘密情報はCloudflare Workers Secretsを正本とし、GitHubには複製しない。
 
 ```bash
-npx wrangler deploy --secrets-file .dev.vars
+npm test
+npm run deploy
 ```
 
-コードとシークレット（`GEMINI_API_KEY`・`GITHUB_TOKEN`・`WORKER_PIN`・`AUTH_TOKEN_SECRET`）が1回の操作でまとめて本番（`https://fukuchan-app.fukuchan-app.workers.dev`）に反映される。
+初回構築時や秘密情報の更新時だけ、管理者がローカルから`npx wrangler deploy --secrets-file .dev.vars`を実行する。通常のCI/CDは既存のWorkers Secretsを保持したままコードを更新する。
 
 ---
 

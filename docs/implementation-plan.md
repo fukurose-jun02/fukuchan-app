@@ -74,7 +74,7 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
   - 初回デプロイ直後はworkers.devサブドメインのTLS証明書発行待ちで数分接続できなかったが、時間を置いて解消した
 - [x] （AI）本番URLで`/health`・`/auth`（正しいPINで200・誤ったPINで401）・`/chat`（200、応答あり）を確認した
 - [ ] （ユーザー）GitHub Actions用に`CLOUDFLARE_API_TOKEN`・`CLOUDFLARE_ACCOUNT_ID`をリポジトリsecretsに登録する（CI/CD自動化、未着手）
-- [ ] （AI）`.github/workflows/deploy-worker.yml`を作成する（契約テスト→`wrangler deploy --secrets-file`の順で実行、`cloudflare-migration`ブランチではデプロイせずテストのみ、mainへのマージ時にデプロイする設定にする）
+- [x] （AI）`.github/workflows/deploy-worker.yml`を作成した（Pull Requestは契約テストのみ、mainへのpush・手動実行は契約テスト成功後に`wrangler deploy`。アプリSecretsはCloudflare側の既存値を保持する）
 
 ## フェーズ5：切り替え
 
@@ -111,4 +111,4 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 - [ ] 問題発生時に`pre-cloudflare-migration`タグ・`wrangler rollback`のいずれでも切り戻せることを確認済み
 - [ ] Cloud Run・旧GitHub Pages設定（2週間後）が停止・削除されている
 - [x] ドキュメント（`fukuchan-knowledge`側3点・`fukuchan-app`側README）が新構成に更新されている
-- [ ] ツールチェーン（wrangler・Node.js）のバージョンが固定されている
+- [x] ツールチェーン（wrangler・Node.js）のバージョンが固定され、CIも`.nvmrc`を参照している
