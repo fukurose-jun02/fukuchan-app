@@ -392,3 +392,22 @@
 - root Worker dry-run：`FINANCE_SERVICE`（`FinanceMcpApi` entrypoint）と機能フラグfalseを確認。
 - finance Worker dry-run：リモートD1とKVバインディングを確認。
 - GitHub OAuth App、Secrets、本番Workerデプロイ、`FINANCE_TOOL_ENABLED=true`への切り替えは未実施。
+
+## 本日の作業ログ（2026-09-12）
+
+状態: ユーザー指示により本日はここで中断。次回はOAuth設定から再開する。
+
+### 今日完了したこと
+
+- `codex/issue-2-cloudflare-cicd`のfinance MCP実装を`main`へfast-forward統合した。
+- 統合後に`npm test`（57件）、root Worker dry-run、finance Worker dry-runを実行し、すべて成功した。
+- リモートD1には架空デモデータを投入済みで、active syncと代表集計を確認した。
+- 作業ログをコミットし、作業ツリーをクリーンにした。
+
+### 次回に残っていること
+
+- GitHub OAuth AppのClient ID/Secret、許可login、callback URLを確定する。
+- Cloudflare Secretsを登録し、finance Workerをデプロイする。
+- MCP Inspectorまたは実クライアントでOAuth接続と5ツールの実応答を確認する。
+- 検証後に必要なら`FINANCE_TOOL_ENABLED=true`へ切り替え、手動CSVまたは固定upstream SQLiteの同期exporterへ進む。
+- GitHubへのpush／Pull Request作成は、ユーザー確認後に行う。
