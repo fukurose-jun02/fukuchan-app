@@ -340,10 +340,10 @@
 - [x] 発行されたD1/KV IDを`workers/finance-mcp/wrangler.toml`へ反映する
 - [x] finance Worker dry-runでD1/KVバインディングを確認する
 
-確認内容:
+確認内容（作成直後）:
 
 - D1は作成済み・テーブル数0。KVは作成済み・保存データなし。
-- D1スキーマ・デモデータ、Secrets、GitHub OAuth App、Workerデプロイは未実施。
+- この時点ではD1スキーマ・デモデータ、Secrets、GitHub OAuth App、Workerデプロイは未実施だった。
 
 ## リモートD1スキーマ適用（2026-09-11）
 
@@ -356,5 +356,25 @@
 
 - `npx wrangler d1 execute fukuchan-finance --remote --file workers/finance-mcp/schema.sql`：11クエリ成功、6つのアプリ用テーブルを作成した。
 - `sqlite_master`で`sync_runs`、`daily_summaries`、`monthly_summaries`、`category_daily_totals`、`category_totals`、`asset_summaries`を確認した（`_cf_KV`はCloudflare管理用テーブル）。
-- 6テーブルの行数はすべて0。デモデータ・実データは投入していない。
+- 適用直後の6テーブルの行数はすべて0。デモデータ・実データはまだ投入していない状態だった。
 - 検証時のUNION ALL集計はSQLiteのcompound SELECT制限で失敗したが、同じ確認をスカラーサブクエリで再実行し成功した。DBへの変更は発生していない。
+- [ ] 新しいGitHub fine-grained PAT（対象repo限定、Contents read-only）へ更新
+- [ ] 新しいGemini Auth keyへ更新
+- [ ] 有効な資格情報で`/chat`正常系が200となることを確認
+
+## リモートD1デモデータ投入（2026-09-11）
+
+状態: 完了。実在しないfixtureのみを投入し、読み取り検証を行った。
+
+- [x] `demo-data.sql`がINSERTのみで、DROP・DELETE・UPDATEを含まないことを確認する
+- [x] `fukuchan-finance`へ架空デモデータをリモート投入する
+- [x] 各テーブル件数と代表集計を読み取り確認する
+
+### Review
+
+- 投入元は`codex/issue-2-cloudflare-cicd`の`bb64747`に含まれる架空fixtureで、実在の家計情報は含まれない。
+- 投入結果：`sync_runs` 1件、`daily_summaries` 22件、`monthly_summaries` 2件、`category_daily_totals` 22件、`category_totals` 4件、`asset_summaries` 3件。
+- 月次集計は2026-08が収入300,000円・支出109,000円、2026-09が収入300,000円・支出138,000円として確認した。
+- 資産集計は預金1,000,000円、投資信託500,000円、負債-200,000円として確認した。
+- D1スキーマ・デモデータはCloudflare上に反映済み。Secrets、GitHub OAuth App、Workerデプロイ、`FINANCE_TOOL_ENABLED=true`への切り替えは未実施。
+- MCP実装一式は`codex/issue-2-cloudflare-cicd`の`bb64747`から`main`へfast-forward統合済みである。
