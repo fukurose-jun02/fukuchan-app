@@ -1,0 +1,26 @@
+name = "fukuchan-finance-mcp"
+main = "src/index.js"
+compatibility_date = "2026-09-05"
+
+[vars]
+# 本番では実際に許可するGitHub loginへ置き換える。複数はカンマ区切り。
+GITHUB_ALLOWED_LOGIN = "replace-with-github-login"
+# 任意。ブラウザ型MCPクライアントのOriginをカンマ区切りで許可する。
+# GITHUB_OAUTH_CALLBACK_URLとMCP_ALLOWED_ORIGINSは本番環境のvarsで設定する。
+
+# Cloudflare上に作成した家計集計用のリモートD1。
+[[d1_databases]]
+binding = "FINANCE_DB"
+database_name = "fukuchan-finance"
+database_id = "bf9117c6-f321-4c39-b6fa-fe425e976ed4"
+
+# Cloudflare上に作成したOAuth状態・grant・token保存用KV。
+[[kv_namespaces]]
+binding = "OAUTH_KV"
+id = "e06a48adc32841cc8da31110d5941df6"
+
+[secrets]
+required = ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "COOKIE_ENCRYPTION_KEY"]
+
+[observability]
+enabled = true

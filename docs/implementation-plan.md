@@ -73,8 +73,10 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
   - Worker URL：`https://fukuchan-app.fukuchan-app.workers.dev`
   - 初回デプロイ直後はworkers.devサブドメインのTLS証明書発行待ちで数分接続できなかったが、時間を置いて解消した
 - [x] （AI）本番URLで`/health`・`/auth`（正しいPINで200・誤ったPINで401）・`/chat`（200、応答あり）を確認した
-- [ ] （ユーザー）GitHub Actions用に`CLOUDFLARE_API_TOKEN`・`CLOUDFLARE_ACCOUNT_ID`をリポジトリsecretsに登録する（CI/CD自動化、未着手）
+- [x] （ユーザー承認の上でAIが設定）GitHub Actions用に`CLOUDFLARE_API_TOKEN`（対象アカウントのWorkers Scripts: Edit）・`CLOUDFLARE_ACCOUNT_ID`をリポジトリSecretsへ登録し、値をコードへ保存しない
 - [x] （AI）`.github/workflows/deploy-worker.yml`を作成した（Pull Requestは契約テストのみ、mainへのpush・手動実行は契約テスト成功後に`wrangler deploy`。アプリSecretsはCloudflare側の既存値を保持する）
+- [x] （AI）PR #4のチェック成功後にmainへマージし、main pushのActions Run 2で契約テスト23件と本番デプロイの成功を確認した
+- [x] （AI）本番Workerの`/health`がHTTP 200・`status: ok`を返すことを確認した
 
 ## フェーズ5：切り替え
 
@@ -104,7 +106,7 @@ Cloudflareアカウント作成・ログイン認証（OAuth）・実際のAPI�
 - [x] `/chat`がCookie認証を要求し、認証なし・無効Cookieでは401を返す（本番URLで確認済み）
 - [x] `/chat`が既存と同等の応答を返す（ナレッジ・日付ターンの扱いを含む、本番URLで応答・ナレッジ反映を確認済み）
 - [ ] 入力上限（実バイト数ベース）・エンドポイント別レート制限・fail-closed・タイムアウト・必須シークレット欠如時の503が機能する（入力上限・fail-closedはローカルで確認済み。レート制限・タイムアウト・503は未確認、契約テストのロジック検証のみ）
-- [ ] 契約テスト（自動化できる範囲）がCI/CDでデプロイ前に実行され、通っている。429・503・静的アセット配信はフェーズ3の手動確認で担保されている（CI/CD自体が未構築のため未達）
+- [x] 契約テスト（自動化できる範囲）がCI/CDでデプロイ前に実行され、23件すべて成功している。429・503・静的アセット配信はフェーズ3の手動確認で担保されている
 - [x] 秘密情報・PIN・認証トークンがコード・リポジトリ・ログに含まれていない
 - [x] 本番シークレットがコード（バージョン）とまとめて1回で投入されている（4回の個別`secret put`になっていない）
 - [x] LINEのリンクが新URLになっている、旧URLは転送ページになっている

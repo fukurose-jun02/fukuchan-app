@@ -45,6 +45,8 @@
                     │
                     ▼
   GitHub Private Repo（ナレッジ）+ Gemini API
+
+家計機能は別Worker `fukuchan-finance-mcp` とD1へ分離し、外部MCP接続はGitHub OAuthで保護する。ふくちゃん本体は`FINANCE_SERVICE`のService Binding経由で同じ集計queryを呼び、Gemini function callingで家計質問に利用できる（`FINANCE_TOOL_ENABLED=true`で有効化）。
 ```
 
 旧構成（GitHub Pages + Google Cloud Run）は移行後2週間、ロールバック用に並行稼働させている。
@@ -59,6 +61,16 @@ fukuchan-app/
 │       └── fuku-icon.png   # ふくちゃんのアイコン画像
 ├── src/
 │   └── index.js           # バックエンドAPI（/auth・/chat・/health）
+├── workers/finance-mcp/    # Issue #1：家計MCP（フェーズ1〜3ローカル実装、未デプロイ）
+│   ├── src/index.js        # OAuth Provider + Worker entrypoint
+│   ├── src/mcp.js          # Streamable HTTP・5つの読み取りツール
+│   ├── src/contracts.js    # MCP・RPC・Geminiで共有する入力契約
+│   ├── src/oauth.js        # GitHub OAuth認可・callback
+│   ├── src/queries.js      # D1読み取り専用query層
+│   ├── src/*.test.js       # query/MCP/OAuth契約テスト
+│   ├── README.md           # ローカル・本番設定手順
+│   ├── schema.sql          # 日次・月次・カテゴリ・資産スキーマ
+│   └── demo-data.sql       # 実在しない架空データ
 ├── wrangler.toml          # Cloudflare Workers設定
 ├── index.html             # 旧GitHub Pages向け（現在は新URLへの転送ページ）
 └── docs/                  # 要件定義・設計・実装計画
@@ -79,6 +91,18 @@ fukuchan-app/
   ```
   レスポンス：`{ "reply": "ふくちゃんの返答" }`
 - **GET /health**：ヘルスチェック（認証不要）
+
+### 家計 Remote MCP / ふくちゃん統合（フェーズ2〜3）
+
+- Worker設定：[`workers/finance-mcp/wrangler.toml`](workers/finance-mcp/wrangler.toml)
+- エンドポイント：`POST /mcp`（OAuth Bearer必須、Streamable HTTP）
+- OAuth：GitHub OAuth（許可loginを`GITHUB_ALLOWED_LOGIN`で制限）
+- 公開ツール：`get_data_freshness`、`get_monthly_summary`、`get_category_breakdown`、`compare_months`、`get_asset_summary`
+- データ：D1の集計値のみ。取引摘要、口座番号、認証情報、任意SQLは扱わない。
+- ふくちゃん統合：`FINANCE_TOOL_ENABLED=true`かつ`FINANCE_SERVICE`が設定された場合だけ、Geminiが5つの家計functionを選択し、Service Binding RPCで実行する。旧`finance.csv`は同時にGeminiへ渡さない。
+- 現在はローカル実装と契約テストまで。finance Workerの本番D1/KV、OAuth secrets、実クライアント接続、本番有効化は未実施。
+
+ローカル契約テストは`npm test -- --run workers/finance-mcp/src/mcp.test.js workers/finance-mcp/src/oauth.test.js`で実行する。本番へ接続するには、Wranglerの`OAUTH_KV`、D1 ID、`GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`、許可login、GitHub OAuth callback URLを環境ごとに設定する。値はリポジトリへ保存しない。
 
 ---
 
