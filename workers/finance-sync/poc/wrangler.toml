@@ -1,0 +1,6 @@
+name = "fukuchan-finance-sync-poc"
+main = "src/index.js"
+compatibility_date = "2026-09-05"
+
+[triggers]
+crons = ["0 * * * *"]

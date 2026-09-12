@@ -462,8 +462,9 @@
 - [x] 前回ログ・要件定義書・設計書・実装計画書と現行コードの状態を再確認する
 - [x] Cloudflare自動同期案をADR-002（Proposed）として文書化する
 - [x] 実データを使わないPoC範囲、Go/No-Go条件、承認ゲートを明文化する
-- [ ] Browser Runの非機密起動PoCを実行する
-- [ ] Cron Triggerの`scheduled()`架空fixture呼び出しを確認する
+- [x] Browser Runの非機密起動PoCを実行する
+- [x] Cron Triggerの`scheduled()`架空fixture呼び出しを確認するためのローカルPoCを作成する
+- [x] ローカルPoCを`wrangler dev --test-scheduled`で実行確認する
 - [ ] Browser Runの費用・制限・Bot対策・セッション保持を確認する
 - [ ] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管についてユーザー承認を得る
 - [ ] 承認後にのみ`workers/finance-sync`を実装し、実データ同期のGo/No-Goを判断する
@@ -472,4 +473,7 @@
 
 - `docs/issue-1-household-finance-mcp/adr-002-automatic-sync.md`を追加した。
 - ADR-002は提案状態であり、既存の「認証情報はローカルのみ」の要件や設計の採用判断を変更していない。
-- 次の実作業は、実データを入力しないBrowser Run起動PoCとCronの架空fixture確認である。
+- Browser Runの空セッションを60秒で作成・表示確認・終了し、残存セッションがないことを確認した。Money ForwardのURL・認証情報・実データは使用していない。
+- `workers/finance-sync/poc/`を追加し、Cron fixtureのテスト（2件）、dry-run、ローカル`/health`と`/__scheduled`呼び出しに成功した。
+- Cron fixtureの応答は`Ran scheduled event`、Workerのhealthは`{"status":"ok","mode":"cron-fixture"}`だった。
+- 次はBrowser RunのMoney Forwardログイン画面到達確認だが、認証情報のCloudflare保管と実データ入力にはユーザー承認が必要である。

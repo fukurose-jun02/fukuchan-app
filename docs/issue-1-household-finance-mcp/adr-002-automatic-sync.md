@@ -139,8 +139,8 @@ No-Goの場合は、認証情報をローカルに限定するOption Aまたは�
 
 ## Action Items
 
-1. [ ] Browser Runの非機密起動PoCを実行する。
-2. [ ] Cron Triggerの`scheduled()`を架空fixtureで実行する。
+1. [x] Browser Runの非機密起動PoCを実行する。
+2. [x] Cron Triggerの`scheduled()`を架空fixtureで実行する。
 3. [ ] Browser Runの費用・制限・Bot対策・セッション保持を確認する。
 4. [ ] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管をユーザーが承認するか決める。
 5. [ ] Go判定後にのみ、`workers/finance-sync`の実装と実データ検証へ進む。

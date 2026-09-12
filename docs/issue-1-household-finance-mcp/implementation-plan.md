@@ -3,7 +3,7 @@
 対応要件: [requirements.md](requirements.md)  
 対応設計: [design.md](design.md)  
 作成日: 2026-09-11  
-状態: Phase 3 complete / Phase 5 rollout in progress（Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ・MCP Inspector 5ツール確認・root Worker finance有効化・本番デモ自然文確認済み、実データ・実クライアント接続待ち）
+状態: Phase 3 complete / Phase 5 rollout in progress（Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ・MCP Inspector 5ツール確認・root Worker finance有効化・本番デモ自然文確認・自動同期の非機密PoC確認済み、実データ・実クライアント接続待ち）
 
 ## 1. 進め方
 
@@ -352,3 +352,11 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 - MCP Inspectorの初回OAuthでscope省略時に`invalid_scope`、再認証時に`Invalid authorization code format`となる不具合を確認した。scope省略時は`mcp:read`を既定付与し、明示された未対応scopeを拒否する修正に加え、Providerの区切り文字と衝突しないuserId形式へ変更した。OAuthテスト9件成功後にfinance Workerを再デプロイし、MCP Inspectorで実ユーザーの再認証と5ツールの実応答を確認した。
 - MCP InspectorでOAuth接続後、5ツールすべての実応答を確認した。食費の同期間比較は33,000円から55,000円、差額22,000円、増減率66.7%となり、資産集計は純資産1,300,000円となった。
 - デモfixtureでは月次9月支出が日次合計より10,000円少なかったため、148,000円（収支152,000円）へ修正した。リモートD1で月次・日次・取引件数が一致することを再検証した。
+
+### 自動同期PoC（2026-09-12）
+
+- [ADR-002](adr-002-automatic-sync.md)を`Proposed`として追加し、既存のローカル認証情報保管要件は変更していない。
+- Wrangler 4.129.0の`browser` CLIで、空のBrowser Runセッションを60秒だけ作成・表示確認・終了した。残存セッションは0件である。
+- `workers/finance-sync/poc/`に、Money Forward・Browser Run・D1へ接続しないCron fixture Workerを追加した。
+- fixtureテスト2件、`wrangler deploy --dry-run`、`wrangler dev --test-scheduled`での`/health`と`/__scheduled`呼び出しに成功した。
+- 実データへのログイン、認証情報入力、Browser Runからの画面取得、D1投入、Cron本番デプロイはまだ実施していない。
