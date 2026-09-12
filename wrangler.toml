@@ -7,6 +7,8 @@ compatibility_date = "2026-09-05"
 
 [vars]
 GITHUB_REPO = "fukurose-jun02/fukuchan-knowledge"
+# finance Worker本番デプロイ済み。Gemini function callingで家計MCPを有効化する。
+FINANCE_TOOL_ENABLED = "true"
 
 # デプロイ時に、本番Workerへ必要なSecretsがすべて設定済みか検証する。
 # 値はCloudflare Workers Secretsで管理し、このファイルやGitHubには保存しない。
@@ -23,6 +25,12 @@ binding = "ASSETS"
 # 静的ファイルにマッチしないパスは元々Workerへフォールバックするが、
 # API側の3経路は明示的に必ずWorkerを通す（design.md 3章）
 run_worker_first = ["/auth", "/chat", "/health"]
+
+# フェーズ3：finance Workerへの内部RPC。公開MCP URLやOAuthは経由しない。
+[[services]]
+binding = "FINANCE_SERVICE"
+service = "fukuchan-finance-mcp"
+entrypoint = "FinanceMcpApi"
 
 # PIN総当たり対策（design.md 5章・6-2）。period は 10 か 60 のみ設定可能。
 [[ratelimits]]

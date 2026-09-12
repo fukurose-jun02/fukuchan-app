@@ -1,0 +1,5 @@
+# Copy this file to .dev.vars (the copied file is gitignored).
+# Never commit or paste the values into chat or logs.
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+COOKIE_ENCRYPTION_KEY=

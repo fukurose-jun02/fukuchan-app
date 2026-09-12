@@ -105,7 +105,7 @@
 
 ## Phase 3 ローカル動作確認（2026-09-05）
 
-状態: 一部合格。外部API資格情報の更新待ちで正常系`/chat`は未完了。
+状態: 完了。外部APIを含む正常系`/chat`まで確認済み。
 
 - [x] `/health` 200
 - [x] `/auth` 正しいPINで200・Cookie発行、誤ったPINで401
@@ -113,6 +113,400 @@
 - [x] 長文で413、不正roleで413
 - [x] `/`と`/images/fuku-icon.png`が200
 - [x] 無効なGitHub資格情報を502でfail-closed
+- [x] 新しいGitHub fine-grained PAT（対象repo限定、Contents read-only）へ更新
+- [x] 新しいGemini Auth keyへ更新
+- [x] ユーザーの明示承認後、PrivateナレッジをGeminiへ送信する実フローで`/chat`正常系200と応答本文の存在を確認
+
+## 全体進捗のログ再照合（2026-09-06）
+
+- [x] フェーズ0〜5：完了（本番手動デプロイ、カットオーバー、LINEリンク更新を含む）
+- [x] フェーズ4のCI/CD自動化：ワークフロー作成・GitHub Actions Secrets登録・main pushでの実行確認まで完了
+- [ ] フェーズ6：2週間の監視期間中。定期確認は設定済み、最終確認は2026-09-19予定
+- [ ] フェーズ7：監視終了後に旧Cloud Run、旧Python backend、Pages workflowを削除予定
+
+## Issue管理ルールの明文化（2026-09-10）
+
+- [x] `AGENTS.md`に、このフォルダのIssueを`fukurose-jun02/fukuchan-app`で管理するルールを追加
+- [x] `CLAUDE.md`を`AGENTS.md`へのシンボリックリンクにし、Claude Codeからも同じルールを参照可能にした
+- [x] Issue操作前にリポジトリ完全名を確認する再発防止策を`tasks/lessons.md`へ記録
+
+### Review
+
+- アプリ開発・デプロイ・インフラ・運用監視のIssue作成先を`fukuchan-app`へ統一した。
+- 同番号Issueの取り違えを防ぐため、作成だけでなく参照・更新・クローズ時の確認規則も明記した。
+- 指示の実体は`AGENTS.md`に一本化し、`CLAUDE.md`から同じファイルを参照する構成にした。
+
+## Issue #2：Cloudflare Workers CI/CD自動化（2026-09-10）
+
+- [x] 現行のデプロイ方式・Issue要件・Cloudflare公式仕様を照合する
+- [x] PRでは契約テスト、mainへのpushでは契約テスト成功後に本番デプロイするワークフローを作成する
+- [x] Wranglerに本番必須シークレット名を宣言し、値をGitHubへ複製せず設定漏れを検知する
+- [x] Node.jsバージョンを固定し、ローカルとCIのツールチェーンを一致させる
+- [x] README・設計・実装計画を実際のCI/CD方式へ更新する
+- [x] ローカルテスト、ワークフロー構文、差分、秘密情報非混入を検証する
+- [x] GitHub Actions用のCloudflare認証情報を設定し、実際のワークフロー成功を確認する
+
+### 方針
+
+- CIでは`CLOUDFLARE_API_TOKEN`と`CLOUDFLARE_ACCOUNT_ID`だけをGitHub Actions Secretsとして使用する。
+- アプリ本体の4シークレットはCloudflare Workers Secretsを正本とし、CIから値を再投入しない。
+- `wrangler deploy`は既存Secretsを保持する。`[secrets].required`で4つの存在をデプロイ前に検証する。
+
+### Review
+
+- `npm test`：23件すべて成功。
+- `npx wrangler deploy --dry-run`：設定読込・Workerバンドル・静的アセット3件の読込に成功。
+- Workflow YAMLの構文解析と`git diff --check`に成功。
+- PRのテストと本番デプロイを条件分岐し、PRから本番へデプロイされないことを確認した。
+- [PR #4](https://github.com/fukurose-jun02/fukuchan-app/pull/4)のチェック成功後にmainへマージした。
+- main pushのActions Run 2（23テスト成功、Wranglerデプロイ成功）を確認した。
+- 本番Workerの`/health`がHTTP 200・`{"status":"ok"}`を返すことを確認した。
+- `CLOUDFLARE_API_TOKEN`（対象アカウントのWorkers Scripts: Edit）と`CLOUDFLARE_ACCOUNT_ID`をGitHub Actions Secretsへ登録した。
+- ActionsのNode.js 20非推奨警告（`actions/checkout@v4`・`actions/setup-node@v4`）は出たが、ジョブは成功。アクションのメジャー更新時に追随する。
+
+## 旧fukuchan-knowledge Issue #1：家計簿MCP化の事前設計（2026-09-11）
+
+- [x] 対象Issueのリポジトリ完全名と本文を確認する
+- [x] 現行のふくちゃんトークと家計データ形式を確認する
+- [x] 参照実装`hiroppy/mf-dashboard`の現行版と旧MCP版を比較する
+- [x] Cloudflare上でのRemote MCP・認証・Worker間連携の実現性を確認する
+- [x] 要件定義書を作成する
+- [x] 設計書を作成する
+- [x] 実装計画書を作成する
+- [x] 3文書の整合性・リンク・秘密情報非混入を検証する
+
+### 現時点の判断
+
+- 条件付きで実現可能。
+- 旧v1のstdio MCPとSQLiteを既存Workerへ直接移植する方式は採用しない。
+- Money Forward MEの取得は信頼済みローカル環境、照会はCloudflare上の読み取り専用Remote MCPに分離する案を推奨する。
+
+### Review
+
+- `docs/issue-1-household-finance-mcp/`に要件定義書・設計書・実装計画書を作成した。
+- 旧v1 MCP、現行v2構成、Cloudflare Remote MCP・D1・Service Binding、Gemini function callingの公式・一次資料を照合した。
+- P0は集計データと読み取り専用5ツールに限定し、取引摘要・口座番号・書き込み操作・任意SQLを対象外にした。
+- `git diff --check`、文書間リンク、見出し構成、既知のsecret形式非混入を確認した。
+- 実装前に決めるブロッキング項目を5件に整理した。実装コードと外部設定はまだ変更していない。
+
+### 要件補足：今月途中と先月同日までの比較（2026-09-11）
+
+- [x] 自然言語の「今月と先月」の既定比較期間を同日までと決める
+- [x] `period_mode=auto`、`month_to_date_same_day`、`full_month`の使い分けを文書化する
+- [x] 日次集計をD1へ保存する設計へ更新する
+- [x] 日次データがない場合に月次全期間で代用しない受け入れ条件を追加する
+
+### Review（要件補足）
+
+- 「今月の食費は先月に比べてどう？」は、当月1日〜Asia/Tokyoの当日と、先月1日〜同日（存在しない場合は先月末）を比較する。
+- 現行の月次`finance.csv`だけではこの回答を保証できないため、日次集計を作れる同期経路をP0の前提にした。
+- 要件定義書・設計書・実装計画書へ同じ期間ルール、D1テーブル、テスト条件を反映した。
+
+## Issue #1 実装：フェーズ1 D1・query層PoC（2026-09-11）
+
+- [x] `workers/finance-mcp/`のWorker雛形を作成する
+- [x] 日次・月次・カテゴリ・資産のD1スキーマを作成する
+- [x] 実在しないデモ家計データを作成する
+- [x] activeスナップショットを読むquery層を実装する
+- [x] P0の5照会関数を実装する
+- [x] 同期間比較、月末丸め、stale、対象月なし、0除算、日次データ不足をテストする
+- [x] `npm test`と文書・秘密情報チェックを実行する
+
+### 作業方針
+
+- Money Forward ME、Cloudflare本番D1、OAuth、Geminiへの接続はフェーズ1では行わない。
+- query層はD1の読み取り専用SQLだけを発行し、INSERT・UPDATE・DELETE・任意SQLを持たせない。
+- デモデータとテスト値は実在の家計情報を使わない。
+
+### Review（フェーズ1）
+
+- Worker雛形、D1スキーマ、架空データ、query層、テストを追加した。
+- `npm test`：35件すべて成功（既存23件、finance query 12件）。
+- `wrangler d1 execute --local`：スキーマ・架空データ投入と日次カテゴリSELECTに成功。
+- `wrangler deploy --dry-run`：WorkerバンドルとD1バインディングの読込に成功。
+- 本番D1、Money Forward ME、OAuth、Gemini、Service Bindingは変更していない。
+- フェーズ0の実データ関連ブロッキング項目は未決定のため、フェーズ2以降の着手条件として残す。
+- 対象リポジトリは`fukurose-jun02/fukuchan-app`と確認した。`gh` CLIが未導入のため、実装用GitHub Issueの作成は保留した。
+- `AGENTS.md`へ開発文章の必読・状況変化時の自動更新ルールを追加し、`tasks/lessons.md`にも記録した。
+
+## Issue #1 実装：フェーズ2 Remote MCP＋GitHub OAuth（2026-09-11）
+
+状態: ローカル実装完了（実クライアント接続・本番設定待ち）
+
+- [x] GitHub OAuthと「Geminiへ集計結果のみ送信」の方針を確定する
+- [x] 公式MCP SDK v2・Cloudflare OAuth ProviderのAPIと制約を確認する
+- [x] `POST /mcp`のstateless Streamable HTTPハンドラを実装する
+- [x] P0の5ツールをquery層へ接続する
+- [x] ツール入力スキーマ、JSON出力、エラー契約を実装する
+- [x] GitHub OAuth認可画面・callback・token endpointを実装する
+- [x] OAuth許可ユーザー制限とfail-closedを実装する
+- [x] ローカル契約テスト（未認証、認証済み、tools/list、tools/call、エラー）を追加する
+- [x] WranglerのOAuth KV・Secrets設定項目と本番URL設定手順を追記する
+- [x] `npm test`、Worker dry-run、差分・秘密情報チェックを実行する
+- [ ] MCP Inspectorと実クライアントでOAuth接続を確認する（本番URL・ユーザー承認待ち）
+- [ ] finance MCPのツール評価テストをCIへ追加する
+
+### 方針
+
+- OAuth Providerが検証した`ctx.props`をMCP SDKへ渡し、MCP側でトークンを再実装・再保存しない。
+- 金融データはツールが要求した集計結果だけを返し、ユーザー識別子・明細・認証情報を結果やログへ出さない。
+- 本番のGitHub Client ID/Secret、Cookie暗号鍵、OAuth KV、許可login、D1 IDはコードへ入れない。
+
+### Review（フェーズ2ローカル実装）
+
+- `npm test`：48件すべて成功（既存アプリ23、finance query 12、MCP 6、OAuth 7）。
+- `npx wrangler deploy --config workers/finance-mcp/wrangler.toml --dry-run`：OAuth KV、D1、Workerバンドルの読込に成功。
+- ローカルWorker smoke test：`GET /health`は200、未認証`POST /mcp`は401（Bearer challenge）を確認。
+- OAuth callbackのstateはKVへ10分・single-useで保存し、GitHub access tokenは保存・ログ出力しない。
+- 本番設定（D1/KVの実ID、GitHub OAuth secrets、許可login、callback URL）と実クライアント接続は未実施。
+
+## 本日の作業ログ（2026-09-11）
+
+状態: ユーザー指示により本日はここで中断。次回この続きから再開する。
+
+### 今日完了したこと
+
+- Issue #1 フェーズ2のローカル実装を完了した。Remote MCP、5つの読み取り専用ツール、GitHub OAuth、許可ユーザー制限、fail-closed、契約テストを追加した。
+- 開発文章（要件定義書・設計書・実装計画書）とREADME、`AGENTS.md`、この進捗ログを実装内容に合わせて更新した。
+- `npm test` は48件すべて成功した。
+- Worker dry-run、`/health`（200）、未認証`POST /mcp`（401）、未設定OAuth（503）、差分・リンク・秘密情報チェックを確認した。
+
+### 次回に残っていること
+
+- 本番D1/KVの実ID、GitHub OAuth App（Client ID/Secret・callback URL・許可login）、必要なSecretsとOrigin設定を確定する（まだ本番変更・本番デプロイはしていない）。
+- MCP Inspectorまたは実クライアントでOAuth接続と5ツールの実応答を確認し、finance MCPの評価テストをCIへ追加する。
+- その後、実装計画書に沿ってService BindingとGemini function callingを実装する。Geminiへ渡すのは集計値・期間・鮮度・as-ofに限定する。
+- `gh` CLIが未導入のため保留中の実装用Issueを、対象リポジトリ`fukurose-jun02/fukuchan-app`へ作成する。
+- `npm install`時に表示された依存関係のhigh severity警告は、実装再開後に影響範囲を確認する（自動修正は行わない）。
+
+### 次回の開始手順
+
+1. `requirements.md`、`design.md`、`implementation-plan.md`を先に読み直す。
+2. このログと実装計画書の未完了チェック項目、本番設定の有無を突き合わせる。
+3. ユーザー承認が必要な外部設定を確認してから、Inspector接続へ進む。
+
+## 再開計画：フェーズ3ローカル統合（2026-09-11）
+
+- [x] 現行`/chat`のGeminiリクエスト・レスポンス契約とテストを再確認する
+- [x] finance Workerの内部RPC（Service Binding相当）契約を設計する
+- [x] `fukuchan-app`側へ家計ツールのfunction declarationとallowlist検証を追加する
+- [x] Geminiのfunction call → finance Worker → function responseの往復を実装する
+- [x] 家計以外の質問、ツール不正引数、MCP障害、staleデータの回帰テストを追加する
+- [x] 要件定義書・設計書・実装計画書と`tasks/todo.md`の状態を更新する
+- [x] `npm test`、dry-run、差分・秘密情報チェックを実行する
+
+### 再開時の前提
+
+- Cloudflare本番D1/KV、GitHub OAuth secrets、実クライアント接続はこの計画では変更しない。
+- Geminiへ渡すのは質問に必要な集計結果・期間・鮮度・`as_of`だけとし、明細・口座番号・OAuth情報は渡さない。
+- Service Bindingが未設定のローカル環境でも、既存の一般会話と安全なフォールバックを維持する。
+
+### Review（フェーズ3ローカル統合）
+
+- `workers/finance-mcp/src/contracts.js`を追加し、MCP・RPC・Geminiの5ツール名、引数スキーマ、RPCメソッド対応を一元化した。
+- finance Workerへ`WorkerEntrypoint`の5 RPCメソッドを追加し、RPC境界でも入力を検証するようにした。
+- root Workerへ`FINANCE_SERVICE` bindingと`FINANCE_TOOL_ENABLED`フラグを追加した。フラグfalseは旧CSV経路、trueかつbinding欠落は503で停止する。
+- Geminiのfunction callを最大2ラウンド・1ラウンド最大5件で処理し、function responseへ同じcall idと固定エラーコードを返すようにした。
+- `npm test`：57件すべて成功。root Worker・finance Workerのdry-run、`git diff --check`も成功した。
+- 本番デプロイ、D1へのスキーマ・実データ投入、GitHub OAuth secrets、実クライアント接続、実データ同期は未実施。D1/KVリソース自体は後続作業で作成済み。
+
+## 外部設定確認（2026-09-11）
+
+状態: Wrangler認証待ちは解消済み。D1/KV作成以外の外部設定・デプロイは未実施。
+
+- 初回確認ではローカルのWrangler認証トークンが期限切れだったが、ユーザーが対話ログインを完了し、`whoami`で対象アカウントを確認できた。
+- 認証情報の値は取得・記録・表示していない。
+- その後のD1/KV作成はユーザー承認を得て実施した。Secrets登録・本番設定・デプロイは引き続き承認を得てから行う。
+
+## 外部設定確認の再開計画（2026-09-11）
+
+- [x] 要件定義書・設計書・実装計画書を読み直し、必要な外部リソース名と設定項目を再確認する
+- [x] Wranglerの認証アカウントと対象アカウントIDを読み取り確認する
+- [x] D1データベースとKV namespaceを読み取り確認し、Wrangler設定のプレースホルダーとの差分を整理する
+- [x] 変更・作成・デプロイを行わず、次に必要なユーザー承認事項をログへ記録する
+
+### 確認結果
+
+- `npx wrangler whoami`：OAuthログイン成功。対象アカウントを確認した。
+- （作成前確認時点）`npx wrangler d1 list`：D1は0件。
+- （作成前確認時点）`npx wrangler kv namespace list`：KV namespaceは0件。
+- （作成前確認時点）`workers/finance-mcp/wrangler.toml`のD1/KV IDはゼロ値プレースホルダーだった。
+- 作成前に必要だったユーザー承認を取得し、以下の作成作業を実施した。
+
+### 作成結果（ユーザー承認後、2026-09-11）
+
+- [x] D1 `fukuchan-finance`を作成する
+- [x] KV namespace `OAUTH_KV`を作成する
+- [x] 発行されたD1/KV IDを`workers/finance-mcp/wrangler.toml`へ反映する
+- [x] finance Worker dry-runでD1/KVバインディングを確認する
+
+確認内容（作成直後）:
+
+- D1は作成済み・テーブル数0。KVは作成済み・保存データなし。
+- この時点ではD1スキーマ・デモデータ、Secrets、GitHub OAuth App、Workerデプロイは未実施だった。
+
+## リモートD1スキーマ適用（2026-09-11）
+
+- [x] `workers/finance-mcp/schema.sql`にDROP・DELETE・UPDATEなどの既存データを破壊する命令がないことを確認する
+- [x] `fukuchan-finance`へスキーマだけをリモート適用する
+- [x] 適用後のテーブル一覧と件数を読み取り確認する
+- [x] デモデータ、実データ、Secrets、Workerデプロイはこの作業では行わない
+
+### Review
+
+- `npx wrangler d1 execute fukuchan-finance --remote --file workers/finance-mcp/schema.sql`：11クエリ成功、6つのアプリ用テーブルを作成した。
+- `sqlite_master`で`sync_runs`、`daily_summaries`、`monthly_summaries`、`category_daily_totals`、`category_totals`、`asset_summaries`を確認した（`_cf_KV`はCloudflare管理用テーブル）。
+- 適用直後の6テーブルの行数はすべて0。デモデータ・実データはまだ投入していない状態だった。
+- 検証時のUNION ALL集計はSQLiteのcompound SELECT制限で失敗したが、同じ確認をスカラーサブクエリで再実行し成功した。DBへの変更は発生していない。
 - [ ] 新しいGitHub fine-grained PAT（対象repo限定、Contents read-only）へ更新
 - [ ] 新しいGemini Auth keyへ更新
 - [ ] 有効な資格情報で`/chat`正常系が200となることを確認
+
+## リモートD1デモデータ投入（2026-09-11）
+
+状態: 完了。実在しないfixtureのみを投入し、読み取り検証を行った。
+
+- [x] `demo-data.sql`がINSERTのみで、DROP・DELETE・UPDATEを含まないことを確認する
+- [x] `fukuchan-finance`へ架空デモデータをリモート投入する
+- [x] 各テーブル件数と代表集計を読み取り確認する
+
+### Review
+
+- 投入元は`codex/issue-2-cloudflare-cicd`の`bb64747`に含まれる架空fixtureで、実在の家計情報は含まれない。
+- 投入結果：`sync_runs` 1件、`daily_summaries` 22件、`monthly_summaries` 2件、`category_daily_totals` 22件、`category_totals` 4件、`asset_summaries` 3件。
+- 月次集計は2026-08が収入300,000円・支出109,000円、2026-09が収入300,000円・支出148,000円として確認した（日次合計と一致）。
+- 資産集計は預金1,000,000円、投資信託500,000円、負債-200,000円として確認した。
+- D1スキーマ・デモデータはCloudflare上に反映済み。Secrets、GitHub OAuth App、Workerデプロイ、`FINANCE_TOOL_ENABLED=true`への切り替えは未実施。
+- MCP実装一式は`codex/issue-2-cloudflare-cicd`の`bb64747`から`main`へfast-forward統合済みである。
+
+## main統合と回帰検証（2026-09-12）
+
+- [x] `codex/issue-2-cloudflare-cicd`を`main`へfast-forward統合する
+- [x] 退避していたデモ投入ログを統合後の`tasks/todo.md`へ戻す
+- [x] 統合後に全テストとroot/finance Workerのdry-runを実行する
+
+### Review
+
+- `main`のHEADは`cb8714f`（実装統合後の作業ログコミット）。作業ツリーはクリーン。
+- `npm test`：6ファイル、57テストすべて成功。
+- root Worker dry-run：`FINANCE_SERVICE`（`FinanceMcpApi` entrypoint）と機能フラグfalseを確認。
+- finance Worker dry-run：リモートD1とKVバインディングを確認。
+- GitHub OAuth App、finance WorkerのSecrets、本番デプロイは完了。`FINANCE_TOOL_ENABLED=true`への切り替えと実クライアント接続は未実施。
+
+## OAuth設定準備計画（2026-09-12）
+
+- [x] 実装・設定・作業ログの状態をCloudflare上のD1/KV・デモデータと照合する
+- [x] GitHub OAuthで必要な入力（Client ID/Secret、許可login、callback URL）を整理する
+- [x] finance Worker専用`.dev.vars`をgitignoreへ追加し、Secrets投入手順を分離する
+- [x] finance Workerのデプロイ履歴を読み取り確認する（未デプロイを確認）
+- [x] finance Worker用`.dev.vars`の存在を値非表示で確認する（3項目設定済み、権限600へ変更済み）
+- [x] GitHub OAuth Appを作成する（ユーザー操作）
+- [x] `GITHUB_ALLOWED_LOGIN`とcallback URLをWrangler varsへ設定する
+- [x] `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`をWorkers Secretsへ登録する（値は会話へ貼らない）
+- [x] finance Workerをdry-run後に本番デプロイする
+- [x] MCP InspectorでOAuth接続と5ツールを確認する（実クライアント接続は別途）
+
+### 設定メモ
+
+- Worker名は`fukuchan-finance-mcp`。デプロイ後に確認したcallback URLは`https://fukuchan-finance-mcp.fukuchan-app.workers.dev/github/callback`で、GitHub OAuth Appの登録値と一致させている。
+- 実装がGitHubへ要求するOAuth scopeは`read:user`のみ。許可loginは推測で設定せず、ユーザーが指定したGitHub loginを使う。
+
+## デモfixture整合性修正とroot有効化計画（2026-09-12）
+
+- [x] `demo-data.sql`の月次・日次合計を読み取り比較し、修正値を確定する
+- [x] 架空データの対象月だけをリモートD1で更新し、月次・日次・カテゴリ集計を再検証する
+- [x] root Workerの`FINANCE_TOOL_ENABLED=true`をdry-runで確認する
+- [x] root Workerを本番デプロイし、既存の認証・health・Service Bindingを確認する
+- [x] ふくちゃんの自然文質問でfinance function callingを確認する（デモデータ・本番Worker）
+
+## 本日の作業ログ（2026-09-12）
+
+状態: finance WorkerのOAuth設定・本番デプロイ・MCP Inspector確認、root Workerのfinance有効化・再デプロイまで完了。実データ同期と実クライアント接続は未着手。
+
+### 今日完了したこと
+
+- `codex/issue-2-cloudflare-cicd`のfinance MCP実装を`main`へfast-forward統合した。
+- 統合後に`npm test`（57件）、root Worker dry-run、finance Worker dry-runを実行し、すべて成功した。
+- リモートD1には架空デモデータを投入済みで、active syncと代表集計を確認した。
+- GitHub OAuth Appの設定、許可login、callback URL、finance Worker Secretsを設定し、finance Workerを本番デプロイした。
+- 本番smoke testで`/health`=200、未認証`POST /mcp`=401、OAuthパラメータなし`/authorize`=400を確認した。Dynamic Client Registrationの疎通確認後、一時テストクライアントは削除した。
+- MCP Inspectorの初回OAuthでscope省略時の`invalid_scope`、再認証時の`Invalid authorization code format`を確認した。scope既定付与と、認可コードの区切り文字と衝突しないuserId形式を実装して再デプロイした。OAuthテスト9件が成功した。
+- MCP InspectorでOAuth接続後、`get_monthly_summary`、`get_category_breakdown`、`compare_months`の実応答を確認した。食費は同期間で33,000円から55,000円へ22,000円（66.7%）増加した。
+- MCP Inspectorで`get_data_freshness`、`get_monthly_summary`、`get_category_breakdown`、`compare_months`、`get_asset_summary`の5ツールすべての実応答を確認した。資産は総資産1,500,000円、負債200,000円、純資産1,300,000円だった。
+- デモfixtureの月次9月支出を148,000円（収支152,000円）へ修正し、リモートD1で月次・日次合計が一致することを再検証した。
+- 最終合成ターンでfunctionResponseを唯一の根拠とするGemini指示を追加し、finance統合テストにその指示とモデルroleの検証を加えた。
+- 修正後の`npm test`（59件）、root Worker dry-run、root Worker本番デプロイ、`/health`=200・`/auth`=200を確認した。
+- 日付履歴を含む架空デモ値のGemini往復再現で、食費55,000円・先月33,000円・差額22,000円を正しく回答できることを確認した。
+- 本番Workerで日付履歴付きの代表質問を1回実行し、`/auth`=200、`/chat`=200、食費55,000円（先月33,000円、差額+22,000円）と鮮度・基準日時の反映を確認した。送信対象はリモートD1の架空デモ集計値のみである。
+
+### 次回に残っていること
+
+- MCP InspectorでOAuth接続と5ツールの実応答を確認する（実クライアント接続は別途、確認済み）。
+- デモfixtureの月次・日次集計差分（9月10,000円）を原因特定し、整合性を取る（修正・リモート検証済み）。
+- root Workerを`FINANCE_TOOL_ENABLED=true`で再デプロイし、代表質問の新旧比較を行う（デモデータによる本番確認まで完了。実データでの確認は未実施）。
+- 次回は手動CSVを介さないCloudflare Browser Run＋Cron Trigger方式の自動同期PoCへ進む。
+- GitHubへのpush／Pull Request作成は、ユーザー確認後に行う。
+
+## 手動CSVなしの自動同期方針検討（2026-09-12）
+
+- [x] Macのスリープ中も動かせる同期方式が必要だと確認する
+- [x] 手動CSVを前提にせず、Cloudflare定期同期を第一候補として整理する
+- [x] 同期専用Worker、Cron Trigger、Browser Run / Playwright、D1 staging/activeの構成案を作る
+- [ ] Browser RunでMoney Forwardのログイン・読み取りPoCを実施する
+- [x] ユーザーからCloudflare SecretsへのMoney Forward認証情報保管と実ログインPoCの承認を得る
+- [ ] OTP・Bot対策・失敗時のstale運用を確定する
+- [ ] 1時間ごとのCron同期を実装し、実データのGo/No-Goを判断する
+
+## 自動同期PoC再開計画（2026-09-12）
+
+- [x] 前回ログ・要件定義書・設計書・実装計画書と現行コードの状態を再確認する
+- [x] Cloudflare自動同期案をADR-002（Proposed）として文書化する
+- [x] 実データを使わないPoC範囲、Go/No-Go条件、承認ゲートを明文化する
+- [x] Browser Runの非機密起動PoCを実行する
+- [x] Browser Runで認証情報なしにMoney Forwardログイン画面へ到達できることを確認する
+- [x] 未認証ログイン画面のフォーム構造とCAPTCHA/OTP表示の有無を確認する
+- [x] Cron Triggerの`scheduled()`架空fixture呼び出しを確認するためのローカルPoCを作成する
+- [x] ローカルPoCを`wrangler dev --test-scheduled`で実行確認する
+- [x] Cloudflare公式仕様のBrowser Run費用・制限・Bot対策・セッション保持を確認する
+- [x] Money Forward ME公式利用規約の認証情報管理・自動接続に関する記載を確認する
+- [x] Money Forward側でBrowser RunのBot対策・OTP・セッション継続可否を確認する（ログイン画面からOTP要求まで確認、OTP入力・セッション永続化は未実施）
+- [x] ユーザーからCloudflare SecretsへのMoney Forward認証情報保管と実ログインPoCの承認を得る
+- [x] 承認後にのみPoC専用Workerを実装し、実ログイン検証を行う
+
+### Review（2026-09-12）
+
+- `docs/issue-1-household-finance-mcp/adr-002-automatic-sync.md`を追加した。
+- ADR-002は提案状態であり、既存の「認証情報はローカルのみ」の要件や設計の採用判断を変更していない。
+- Browser Runの空セッションを60秒で作成・表示確認・終了し、残存セッションがないことを確認した。Money ForwardのURL・認証情報・実データは使用していない。
+- Browser Runで`https://id.moneyforward.com/sign_in`を認証情報なしで開き、origin、パス、読み込み完了状態だけを確認した。画面内容・Cookie・認証情報は保存していない。
+- `workers/finance-sync/poc/`を追加し、Cron fixtureのテスト（2件）、dry-run、ローカル`/health`と`/__scheduled`呼び出しに成功した。
+- Cron fixtureの応答は`Ran scheduled event`、Workerのhealthは`{"status":"ok","mode":"cron-fixture"}`だった。
+- Cloudflare公式仕様で、Free/ Paidの利用枠、セッションのアイドル終了、Bot識別、料金の扱いを確認した。Money Forward側での実際のBot対策・OTP・セッション継続可否は未確認である。
+- 未認証ログイン画面でメール欄・パスワード欄を確認し、CAPTCHA/OTPの表示は検出されなかった。これはログイン後の挙動を保証しない。
+- Money Forward ME公式利用規約を確認した。ID・パスワードの貸与・譲渡・第三者利用を禁止し、自動入力/API接続は利用者自身の行為として責任を負う旨がある。Cloudflareへの保管可否は、技術的に可能でも規約・利用者判断が必要である。
+- 次はPoC専用Workerの実装と、Money Forward側のログイン後のBot対策・OTP・セッション継続可否の確認である。実データ投入・本番Cron有効化は別途承認が必要である。
+
+## 実ログインPoC（Cloudflare Secrets保管の承認後、2026-09-12）
+
+- [x] ユーザーからCloudflare SecretsへのMoney Forward認証情報保管と実ログインPoCの承認を得る
+- [x] PoC専用WorkerにBrowser binding、認証情報参照、保護した手動起動口を実装する
+- [x] Money Forward認証情報を会話へ貼らず、ユーザー操作でCloudflare Secretsへ投入する
+- [x] 実ログインPoCを1回実行し、成功・Bot対策・OTP・セッション失効の状態だけを確認する（修正後に`OTP_REQUIRED`、`/email_otp`まで到達）
+- [x] PoC終了後に手動起動口を無効化し、セッション・一時データを残さない
+- [x] Wranglerを4.131.1へ合わせ、公開ページだけでBrowser Run接続を再診断する
+- [x] Cloudflare公式のCDP互換性切り戻しフラグでも公開ページ診断を行う
+- [x] CloudflareダッシュボードObservabilityでPoC WorkerのHTTP応答とWorker outcomeを確認する（過去イベントの`/health`=200、`/poc/login`=401、集計は2 Success/0 Errors）
+- [ ] 実データのD1投入・定期Cron有効化は、PoCのGo/No-Goと別途承認が完了するまで行わない
+
+### Review
+
+- ユーザーは`おｋ`で、Cloudflare SecretsへのMoney Forward認証情報保管と1回の実ログインPoCを承認した。
+- 承認範囲はPoCに限定し、認証情報の会話・Git・ログへの出力、Geminiへの実データ送信、D1への実データ投入、本番Cron有効化、セッション永続化は含まない。
+- PoC専用Workerを一時有効化して1回実行したが、認証付きリクエストはHTTP 400（本文なし）で判定未到達だった。原因調査のための追加ログイン試行は行わず、`POC_ENABLED=false`で再デプロイして実行口を無効化した。
+- ユーザー承認後に安全なtailを併用して1回だけ再試行したが、同じHTTP 400（本文なし）でログイン状態を分類できなかった。Workerの実行口は再び`POC_ENABLED=false`で無効化済みである。
+- Money Forwardへ接続しない`https://example.com`の公開ページ診断もHTTP 400（本文なし）となったため、資格情報の正否ではなく、WorkerからBrowser Runを起動する経路の問題が疑われる。診断用エンドポイントは削除し、Workerを無効状態で再デプロイした。
+- Wranglerを4.131.1へ更新して同じ公開ページ診断を行ってもHTTP 400（本文なし）が再現した。バージョン差では解消しないため、Browser Runの利用状態・アカウント側設定またはCloudflare側の実行障害を確認する段階へ移る。
+- `no_websocket_standard_binary_type`をPoC専用Workerへ一時適用してもHTTP 400（本文なし）が再現した。診断後は標準設定へ戻し、Workerを無効状態で再デプロイした。
+- CloudflareダッシュボードObservabilityで`/health`=200と`/poc/login`=401（Worker outcome=`ok`）を確認した。集計は`2 Success / 0 Errors`で、HTTP 400の発生箇所は未確定のままである。Workerは無効状態を維持し、追加のBrowser Run・ログイン試行は行わない。
+- `SYNC_POC_TOKEN`にANSI制御文字が混入していたため、AuthorizationヘッダーがCloudflare端でHTTP 400になっていた。トークンを64文字hexへローテーションした後、公開サイト診断はHTTP 200となり、Browser Run bindingの正常動作を確認した。
+- Money Forwardログイン画面の送信ボタンセレクタを`button#submitto`優先へ修正し、実ログインPoCは`OTP_REQUIRED`（`/email_otp`）まで到達した。診断ルート削除と`POC_ENABLED=false`への復旧、`/health`=200・`/poc/login`=404を確認済みである。

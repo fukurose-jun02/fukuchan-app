@@ -27,8 +27,10 @@
 LINE
 ↓（リンクタップ、移行完了後にURLを更新）
 Cloudflare Workers（fukuchan-app：静的ファイル配信 + /chat, /health API）
-↓
-GitHub Private Repo（fukuchan-knowledge）+ Gemini API
+├─ Service Binding（FINANCE_SERVICE）
+│  └─ fukuchan-finance-mcp Worker → D1（集計値）
+├─ GitHub Private Repo（fukuchan-knowledge：家計以外のナレッジ／移行中の旧CSV）
+└─ Gemini API（通常会話、またはfinance function calling）
 ```
 
 Worker1つの中に、静的アセット（`index.html`等）と`fetch`ハンドラ（API処理）が同居する。
@@ -95,6 +97,8 @@ Workers Static Assetsを使うため、`wrangler.toml`に最低限以下を明�
 | `WORKER_PIN` | シークレット | 同上 | `/auth`でのPIN照合 |
 | `AUTH_TOKEN_SECRET` | シークレット | 同上 | 認証トークンのHMAC署名鍵（5章） |
 | `GITHUB_REPO` | 通常変数 | `wrangler.toml`の`[vars]` | ナレッジ取得先リポジトリ名（秘密情報ではないため平文でよい） |
+| `FINANCE_TOOL_ENABLED` | 通常変数 | `wrangler.toml`の`[vars]` | `true`かつ`FINANCE_SERVICE`設定時だけ家計function callingを有効化 |
+| `FINANCE_SERVICE` | Service Binding | `wrangler.toml`の`[[services]]` | `fukuchan-finance-mcp`の内部RPC呼び出し。公開URL・OAuthは経由しない |
 
 ## 4. API契約（正規仕様として確定）
 
@@ -167,15 +171,25 @@ SDKの`start_chat(history).send_message(message)`は「`history` + 今回の`mes
 
 レスポンスから`candidates[0].content.parts[0].text`を取り出して`reply`とする。候補が0件の場合は502として扱う。
 
+#### 4-3-1. 家計function calling（フェーズ3）
+
+`FINANCE_TOOL_ENABLED=true`かつ`FINANCE_SERVICE`が設定されている場合、`finance.csv`をナレッジへ含めず、P0の5つの読み取り専用function declarationだけをGeminiへ渡す。Geminiが返した`functionCall`は、`name`と`args`を共有zod契約で検証してからService Binding RPCへ渡す。
+
+RPC結果は次のターンの`functionResponse`として同じ`id`を付けて返し、Geminiの最終テキストを`reply`にする。最終合成ターンではfunction responseの`result`を家計回答の唯一の根拠とする指示を追加し、旧ナレッジやモデル知識の異なる金額を採用しない。ツールが未定義・引数不正・RPC失敗の場合は、固定されたエラーコードだけをfunction responseへ入れ、金額や認証情報をログへ出さない。最大2ラウンド、1ラウンド最大5呼び出しで打ち切る。
+
+finance WorkerのRPCメソッドはMCPと同じquery層を呼ぶため、外部MCPとふくちゃんトークで集計ロジックを二重実装しない。機能フラグが`false`の場合は従来どおり`finance.csv`を含む通常ナレッジ経路を使う。
+
 ### 4-4. 契約テスト（実装確認済み）
 
-`src/index.js`に対する自動テストを`@cloudflare/vitest-plugin`（[公式ドキュメント](https://developers.cloudflare.com/workers/testing/vitest-integration/)）で実装し、`npx vitest run`で23件すべて成功することを確認済み。
+`src/index.js`に対する自動テストを`@cloudflare/vitest-plugin`（[公式ドキュメント](https://developers.cloudflare.com/workers/testing/vitest-integration/)）で実装し、`npm test`で57件すべて成功することを確認済み。
 
 **自動テストで固定している範囲**
 - `validateChatBody`：`role`が`"user"`/`"model"`以外・`message`/`history`の長さ上限超過を弾くこと（純粋関数の単体テスト）
 - `createToken`/`verifyToken`：発行直後は有効、期限切れ・署名改ざん・別鍵署名は無効と判定されること
 - `timingSafeStringEqual`の等価判定
 - `statusForUpstreamError`：`TimeoutError`は504、それ以外（GitHub/Geminiの4xx・5xx・candidates 0件）は502にマッピングされること（6-3の表と一致）
+- finance function calling：5ツールのallowlist、引数検証、未知ツール拒否、function call/responseの往復、`finance.csv`除外、機能フラグのfail-closed
+- finance WorkerのService Binding RPC：P0の5メソッドと共有query層、RPC引数検証
 - `/health`のレスポンス形状
 - `/auth`：正しいPINでCookie（`HttpOnly`・`SameSite=Strict`）が発行されること、誤ったPINで401になること、ボディが大きすぎる場合に413になること（`Content-Length`を付けない状態でも実バイト数で判定されること）
 - `/chat`：認証Cookie欠如・無効Cookieで401、`message`上限超過で413になること

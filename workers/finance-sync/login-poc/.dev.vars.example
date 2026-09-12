@@ -1,0 +1,5 @@
+# 実値はこのファイルへ書かず、コピーした .dev.vars にだけ入力する。
+# .dev.vars は gitignore 済みで、会話・Git・ログへ貼り付けない。
+MF_LOGIN_EMAIL=
+MF_LOGIN_PASSWORD=
+SYNC_POC_TOKEN=

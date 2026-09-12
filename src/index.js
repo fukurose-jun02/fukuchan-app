@@ -1,8 +1,24 @@
+import {
+  FINANCE_TOOL_DECLARATIONS,
+  parseFinanceToolCall,
+} from '../workers/finance-mcp/src/contracts.js';
+
 const REQUIRED_SECRETS = ['GEMINI_API_KEY', 'GITHUB_TOKEN', 'WORKER_PIN', 'AUTH_TOKEN_SECRET'];
 
 const COOKIE_NAME = 'fuku_session';
 const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7日（design.md 5章）
 const FETCH_TIMEOUT_MS = 10000;
+const FINANCE_TOOL_MAX_ROUNDS = 2;
+const FINANCE_TOOL_MAX_CALLS_PER_ROUND = 5;
+const FINANCE_SYNTHESIS_INSTRUCTION = `
+
+## functionResponse後の最終回答ルール（厳格）
+直前のfunctionResponseに含まれるresultを、家計に関する唯一の根拠として使ってください。
+ナレッジ本文・過去の会話・モデル自身の知識にある別の金額や期間は無視し、resultにない金額を推測・補完しないでください。
+resultにcategoryがある場合は、そのカテゴリのbase_yen・compare_yen・delta_yen・change_rateを優先して説明してください。
+resultにエラーがある場合だけ、値を作らず取得できない理由を簡潔に伝えてください。
+日本語でふくちゃんらしく簡潔に答え、result.meta.asOfとresult.meta.freshnessがあれば必ず含めてください。
+`;
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_HISTORY_ITEMS = 40;
@@ -100,10 +116,17 @@ async function handleChat(request, env) {
 
   const { message, history } = body;
 
+  const financeMode = resolveFinanceMode(env);
+  if (financeMode === 'misconfigured') {
+    return jsonResponse({ error: 'finance unavailable' }, 503);
+  }
+
   let promptText;
   let knowledgeText;
   try {
-    [promptText, knowledgeText] = await loadAllKnowledge(env);
+    [promptText, knowledgeText] = await loadAllKnowledge(env, {
+      includeFinance: financeMode !== 'enabled',
+    });
   } catch (e) {
     console.error('knowledge_fetch_error', e.name === 'TimeoutError' ? 'timeout' : 'failed');
     return jsonResponse({ error: 'knowledge unavailable' }, statusForUpstreamError(e));
@@ -120,12 +143,26 @@ async function handleChat(request, env) {
 ${knowledgeText}
 `;
 
+  const financeInstruction = financeMode === 'enabled'
+    ? `
+
+## 家計ツール利用ルール
+家計に関する金額・比較・資産の質問では、必ず提供されたfinance toolを使ってください。
+ツール結果にない金額を推測・補完せず、結果のmeta.asOfとmeta.freshnessを回答に含めてください。
+ツールがエラーを返した場合は、家計の値を推測せず、取得できない理由を簡潔に伝えてください。
+「今月の食費は先月に比べてどう？」のような質問では、compare_monthsを使い、period_modeは通常autoにしてください。
+家計以外の質問ではfinance toolを呼ばず、通常のナレッジまたは雑談として回答してください。
+`
+    : '';
+
   const contents = history.map((item) => ({ role: item.role, parts: [{ text: item.content }] }));
   contents.push({ role: 'user', parts: [{ text: message }] });
 
   let reply;
   try {
-    reply = await callGemini(env, systemPrompt, contents);
+    reply = financeMode === 'enabled'
+      ? await callGeminiWithFinance(env, `${systemPrompt}${financeInstruction}`, contents)
+      : extractGeminiText(await callGemini(env, systemPrompt, contents));
   } catch (e) {
     console.error('gemini_error', e.name === 'TimeoutError' ? 'timeout' : e.message);
     return jsonResponse({ error: 'gemini call failed' }, statusForUpstreamError(e));
@@ -165,7 +202,13 @@ export function validateChatBody(body) {
 
 /* ===== ナレッジ取得（GitHub Contents API、fail-closed） ===== */
 
-async function fetchGithubFile(env, path) {
+export function resolveFinanceMode(env) {
+  const enabled = String(env?.FINANCE_TOOL_ENABLED || '').toLowerCase() === 'true';
+  if (!enabled) return 'disabled';
+  return env?.FINANCE_SERVICE ? 'enabled' : 'misconfigured';
+}
+
+export async function fetchGithubFile(env, path, fetchImpl = fetch) {
   const url = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/${path}`;
   const res = await fetchWithTimeout(
     url,
@@ -176,7 +219,8 @@ async function fetchGithubFile(env, path) {
         'User-Agent': 'fukuchan-app-worker',
       },
     },
-    FETCH_TIMEOUT_MS
+    FETCH_TIMEOUT_MS,
+    fetchImpl
   );
   if (!res.ok) {
     throw new Error(`github_fetch_failed:${res.status}`);
@@ -184,11 +228,12 @@ async function fetchGithubFile(env, path) {
   return res.text();
 }
 
-async function loadAllKnowledge(env) {
+export async function loadAllKnowledge(env, { includeFinance = true, fetchImpl = fetch } = {}) {
   let promptText = '';
   let knowledgeText = '';
   for (const [label, path] of Object.entries(KNOWLEDGE_FILES)) {
-    const content = await fetchGithubFile(env, path);
+    if (!includeFinance && label === '家計情報') continue;
+    const content = await fetchGithubFile(env, path, fetchImpl);
     if (label === 'ふくちゃんプロンプト') {
       promptText = content;
     } else {
@@ -200,11 +245,12 @@ async function loadAllKnowledge(env) {
 
 /* ===== Gemini API（REST直接呼び出し） ===== */
 
-async function callGemini(env, systemPrompt, contents) {
+export async function callGemini(env, systemPrompt, contents, { tools, fetchImpl = fetch } = {}) {
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
   const payload = {
     system_instruction: { parts: [{ text: systemPrompt }] },
     contents,
+    ...(tools ? { tools } : {}),
   };
 
   const res = await fetchWithTimeout(
@@ -217,19 +263,135 @@ async function callGemini(env, systemPrompt, contents) {
       },
       body: JSON.stringify(payload),
     },
-    FETCH_TIMEOUT_MS
+    FETCH_TIMEOUT_MS,
+    fetchImpl
   );
 
   if (!res.ok) {
     throw new Error(`gemini_failed:${res.status}`);
   }
 
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (typeof text !== 'string') {
-    throw new Error('no_candidates');
+  return res.json();
+}
+
+export function extractGeminiText(data) {
+  const parts = data?.candidates?.[0]?.content?.parts;
+  const textPart = Array.isArray(parts) ? parts.find((part) => typeof part?.text === 'string') : null;
+  if (typeof textPart?.text !== 'string') throw new Error('no_candidates');
+  return textPart.text;
+}
+
+export function extractGeminiFunctionCalls(data) {
+  const parts = data?.candidates?.[0]?.content?.parts;
+  if (!Array.isArray(parts)) return [];
+  return parts
+    .map((part) => part?.functionCall)
+    .filter((call) => call && typeof call.name === 'string');
+}
+
+function functionResponsePart(call, response) {
+  const functionResponse = {
+    name: call.name,
+    response,
+    ...(typeof call.id === 'string' && call.id.length > 0 ? { id: call.id } : {}),
+  };
+  return { functionResponse };
+}
+
+const FINANCE_ERROR_MESSAGES = {
+  unknown_tool: 'unknown finance tool',
+  invalid_arguments: 'invalid finance tool arguments',
+  no_active_sync: 'finance data is unavailable',
+  month_not_found: 'the requested finance month is unavailable',
+  unsupported_granularity: 'daily comparison data is unavailable',
+  invalid_month: 'the requested month is invalid',
+  invalid_date: 'the requested date is invalid',
+  invalid_direction: 'the requested direction is invalid',
+  invalid_period_mode: 'the requested comparison mode is invalid',
+  invalid_category: 'the requested category is invalid',
+  invalid_limit: 'the requested category limit is invalid',
+};
+
+function safeFinanceError(error) {
+  const code = typeof error?.code === 'string' && FINANCE_ERROR_MESSAGES[error.code]
+    ? error.code
+    : 'finance_unavailable';
+  return { code, message: FINANCE_ERROR_MESSAGES[code] || 'finance data is unavailable' };
+}
+
+export async function executeFinanceToolCall(service, call) {
+  const parsed = parseFinanceToolCall(call?.name, call?.args);
+  if (!parsed.ok) return functionResponsePart(call || {}, { error: parsed.error });
+  if (!service || typeof service[parsed.method] !== 'function') {
+    return functionResponsePart(call, {
+      error: { code: 'finance_unavailable', message: 'finance data is unavailable' },
+    });
   }
-  return text;
+  try {
+    const result = await service[parsed.method](parsed.args);
+    return functionResponsePart(call, { result });
+  } catch (error) {
+    return functionResponsePart(call, { error: safeFinanceError(error) });
+  }
+}
+
+export function appendFinanceMetadata(reply, functionParts) {
+  const metadata = (functionParts || [])
+    .map((part) => part?.functionResponse?.response?.result?.meta)
+    .find((meta) => meta && (meta.asOf || meta.freshness));
+  if (!metadata || typeof reply !== 'string') return reply;
+  const asOf = typeof metadata.asOf === 'string' && metadata.asOf ? metadata.asOf : '不明';
+  const freshness = typeof metadata.freshness === 'string' && metadata.freshness
+    ? metadata.freshness
+    : '不明';
+  if (reply.includes(asOf) && reply.includes(freshness)) return reply;
+  return `${reply}\n\n（家計データ基準日時: ${asOf} / 鮮度: ${freshness}）`;
+}
+
+export async function callGeminiWithFinance(
+  env,
+  systemPrompt,
+  contents,
+  { service = env?.FINANCE_SERVICE, fetchImpl = fetch, maxRounds = FINANCE_TOOL_MAX_ROUNDS } = {}
+) {
+  const tools = [{ functionDeclarations: FINANCE_TOOL_DECLARATIONS }];
+  const nextContents = contents.map((content) => ({
+    ...content,
+    parts: Array.isArray(content.parts) ? content.parts.map((part) => ({ ...part })) : content.parts,
+  }));
+  let response = await callGemini(env, systemPrompt, nextContents, { tools, fetchImpl });
+  const executedFunctionParts = [];
+
+  for (let round = 0; round < maxRounds; round += 1) {
+    const calls = extractGeminiFunctionCalls(response);
+    if (calls.length === 0) return extractGeminiText(response);
+    if (calls.length > FINANCE_TOOL_MAX_CALLS_PER_ROUND) {
+      throw new Error('finance_tool_call_limit_exceeded');
+    }
+
+    const modelContent = response?.candidates?.[0]?.content;
+    if (!modelContent || !Array.isArray(modelContent.parts)) {
+      throw new Error('invalid_function_call_response');
+    }
+    // Geminiの候補contentはモデルターンとしてそのまま再送する。
+    // 応答側でroleが省略されるケースにも対応するため、roleだけは明示する。
+    nextContents.push({ ...modelContent, role: 'model' });
+    const functionParts = await Promise.all(calls.map((call) => executeFinanceToolCall(service, call)));
+    executedFunctionParts.push(...functionParts);
+    nextContents.push({ role: 'user', parts: functionParts });
+    response = await callGemini(env, `${systemPrompt}${FINANCE_SYNTHESIS_INSTRUCTION}`, nextContents, {
+      tools,
+      fetchImpl,
+    });
+    if (extractGeminiFunctionCalls(response).length === 0) {
+      return appendFinanceMetadata(extractGeminiText(response), executedFunctionParts);
+    }
+  }
+
+  if (extractGeminiFunctionCalls(response).length > 0) {
+    throw new Error('finance_tool_loop_exceeded');
+  }
+  return appendFinanceMetadata(extractGeminiText(response), executedFunctionParts);
 }
 
 /* ===== 認証トークン（HMAC-SHA256署名、KVを使わない自己完結型） ===== */
@@ -299,11 +461,11 @@ function getCookie(request, name) {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-async function fetchWithTimeout(url, options, timeoutMs) {
+async function fetchWithTimeout(url, options, timeoutMs, fetchImpl = fetch) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    return await fetchImpl(url, { ...options, signal: controller.signal });
   } catch (e) {
     if (e.name === 'AbortError') {
       const timeoutError = new Error('timeout');
