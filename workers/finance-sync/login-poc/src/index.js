@@ -91,11 +91,15 @@ export default {
     if (env.POC_ENABLED !== 'true') {
       return new Response('Not found', { status: 404 });
     }
-    if (!hasRequiredPocSecrets(env)) {
+    if (typeof env.SYNC_POC_TOKEN !== 'string' || env.SYNC_POC_TOKEN.length === 0) {
       return json({ error: 'poc_secrets_missing' }, 503);
     }
     if (!isAuthorizedPocRequest(request, env.SYNC_POC_TOKEN)) {
       return json({ error: 'unauthorized' }, 401);
+    }
+
+    if (!hasRequiredPocSecrets(env)) {
+      return json({ error: 'poc_secrets_missing' }, 503);
     }
 
     const result = await runLoginPoc(env);

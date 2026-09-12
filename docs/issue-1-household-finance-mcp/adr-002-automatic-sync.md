@@ -169,6 +169,13 @@ No-Goの場合は、認証情報をローカルに限定するOption Aまたは�
 - 結果は前回と同じHTTP 400（本文なし）で、tailに分類可能なWorkerエラーイベントは現れなかった。ログイン画面の本文・Cookie・取引データは取得していない。
 - 追加試行は行わず、PoC専用Workerは再び`POC_ENABLED=false`で無効化した。原因未解決のため、自動同期のGo判定および本番Cron実装へは進まない。
 
+## 公開ページ診断結果（2026-09-12）
+
+- Money Forwardへ接続しない`https://example.com`を、同じPoC専用WorkerのBrowser Run bindingから1回だけ開く診断を実施した。
+- 結果はHTTP 400（本文なし）で、公開ページのBrowser Run接続自体が成立したことを確認できなかった。したがって、今回のログイン失敗はメールアドレス・パスワードの正否より前のWorker→Browser Run経路の問題である可能性が高い（推測）。
+- 診断用エンドポイントはコードから削除し、PoC専用Workerを`POC_ENABLED=false`で再デプロイした。Browser Run binding・Secretsは残すが、実行口は無効である。
+- Browser Runの接続原因を解消できるまで、Money Forwardの再ログイン、自動同期のGo判定、本番Cron、D1への実データ投入には進まない。
+
 ## Cloudflare公式仕様の確認結果（2026-09-12）
 
 - Workers FreeはBrowser Runが1日10分、同時ブラウザ3、ブラウザ起動は20秒に1回、アイドルタイムアウトは60秒である。

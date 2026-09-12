@@ -490,7 +490,7 @@
 
 - [x] ユーザーからCloudflare SecretsへのMoney Forward認証情報保管と実ログインPoCの承認を得る
 - [x] PoC専用WorkerにBrowser binding、認証情報参照、保護した手動起動口を実装する
-- [ ] Money Forward認証情報を会話へ貼らず、ユーザー操作でCloudflare Secretsへ投入する
+- [x] Money Forward認証情報を会話へ貼らず、ユーザー操作でCloudflare Secretsへ投入する
 - [x] 実ログインPoCを1回実行し、成功・Bot対策・OTP・セッション失効の状態だけを確認する（再試行を含めHTTP 400で判定未到達）
 - [x] PoC終了後に手動起動口を無効化し、セッション・一時データを残さない
 - [ ] 実データのD1投入・定期Cron有効化は、PoCのGo/No-Goと別途承認が完了するまで行わない
@@ -501,3 +501,4 @@
 - 承認範囲はPoCに限定し、認証情報の会話・Git・ログへの出力、Geminiへの実データ送信、D1への実データ投入、本番Cron有効化、セッション永続化は含まない。
 - PoC専用Workerを一時有効化して1回実行したが、認証付きリクエストはHTTP 400（本文なし）で判定未到達だった。原因調査のための追加ログイン試行は行わず、`POC_ENABLED=false`で再デプロイして実行口を無効化した。
 - ユーザー承認後に安全なtailを併用して1回だけ再試行したが、同じHTTP 400（本文なし）でログイン状態を分類できなかった。Workerの実行口は再び`POC_ENABLED=false`で無効化済みである。
+- Money Forwardへ接続しない`https://example.com`の公開ページ診断もHTTP 400（本文なし）となったため、資格情報の正否ではなく、WorkerからBrowser Runを起動する経路の問題が疑われる。診断用エンドポイントは削除し、Workerを無効状態で再デプロイした。

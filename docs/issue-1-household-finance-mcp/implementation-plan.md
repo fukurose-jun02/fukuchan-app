@@ -380,3 +380,10 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 - 結果は`AUTHENTICATED`、`AUTH_FAILED`、`OTP_REQUIRED`、`BOT_BLOCKED`、`BROWSER_ERROR`、`UNEXPECTED_STATE`の粗い分類とorigin/pathだけを返す。Cookie、画面本文、取引明細、スクリーンショット、Storage Stateは保存しない。
 - `finally`でBrowser Runを閉じる。PoC専用Workerには本番Cronを設定せず、PoC終了後は`POC_ENABLED=false`へ戻して手動起動口を無効化する。
 - Wrangler dry-run後、ユーザーがローカルの無視対象Secretsファイルへ値を入力し、`--secrets-file`でPoC専用Workerを一時有効化してデプロイした。`/health` 200と未認証401を確認した後、認証済みの実ログイン試行はHTTP 400（本文なし）で判定未到達だった。ユーザーの再試行承認後に安全なtailを併用して1回だけ再試行したが同じHTTP 400であり、追加試行を行わず`POC_ENABLED=false`で再デプロイした。
+
+### 公開ページによるBrowser Run切り分け（2026-09-12）
+
+- Money Forwardへ接続しない`https://example.com`を同じWorkerから開く診断口を一時追加した。
+- 公開ページでもHTTP 400（本文なし）となり、ログイン状態の分類以前にWorker→Browser Run接続が成立していない可能性が高いと判断した（推測）。
+- 診断口は確認後にコードから削除し、PoC専用Workerを`POC_ENABLED=false`で再デプロイした。
+- Browser Run接続が解消するまで、認証付きログインの追加試行、実データ同期、本番Cron、D1投入は停止する。
