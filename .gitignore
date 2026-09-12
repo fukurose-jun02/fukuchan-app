@@ -14,6 +14,7 @@ finance.csv
 /workers/finance-mcp/.dev.vars
 /workers/finance-mcp/.dev.vars.save
 /workers/finance-sync/login-poc/.dev.vars
+/workers/finance-sync/login-poc/.dev.vars.save
 node_modules/
 .wrangler/
 

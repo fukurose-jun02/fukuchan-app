@@ -6,6 +6,7 @@ import {
   getSafeLocation,
   hasRequiredPocSecrets,
   isAuthorizedPocRequest,
+  selectors,
 } from './logic.js';
 
 describe('finance-sync login PoC logic', () => {
@@ -33,6 +34,10 @@ describe('finance-sync login PoC logic', () => {
     });
     expect(isAuthorizedPocRequest(request, 'test-token')).toBe(true);
     expect(isAuthorizedPocRequest(request, 'wrong-token')).toBe(false);
+  });
+
+  it('targets the current Money Forward submit button first', () => {
+    expect(selectors.submit).toContain('button#submitto');
   });
 
   it('supports the dedicated token header as a fallback', () => {

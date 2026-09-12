@@ -3,7 +3,7 @@
 対応要件: [requirements.md](requirements.md)  
 対応設計: [design.md](design.md)  
 作成日: 2026-09-11  
-状態: Phase 3 complete / Phase 5 rollout in progress（Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ・MCP Inspector 5ツール確認・root Worker finance有効化・本番デモ自然文確認・自動同期の非機密PoC確認済み・実ログインPoC承認済み、実データ同期・本番Cron待ち）
+状態: Phase 3 complete / Phase 5 rollout in progress（Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ・MCP Inspector 5ツール確認・root Worker finance有効化・本番デモ自然文確認・Browser Run接続確認・実ログインPoCでOTP要求まで確認済み、OTP後の取得・実データ同期・本番Cron待ち）
 
 ## 1. 進め方
 
@@ -330,7 +330,7 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 
 ## 15. 次に行うこと
 
-フェーズ3のローカル統合とCloudflare外部設定は完了した。finance Worker用D1/KVを作成し、リモートD1へ`schema.sql`と架空の`demo-data.sql`を適用済みである。GitHub OAuth App、Secrets、許可login、callback URLを設定し、finance Workerを本番デプロイ済みである。MCP InspectorでOAuth接続と5ツールの実応答を確認し、root Workerも`FINANCE_TOOL_ENABLED=true`で本番デプロイした。最終合成ターンではfunctionResponseを唯一の根拠とする指示を追加し、架空デモ値で自然文回答を再現確認した。さらに本番Workerで日付履歴付きの代表質問を実行し、食費55,000円・先月33,000円・差額+22,000円、鮮度stale、基準日時の反映を確認した。手動CSVなしの自動同期については、[ADR-002](adr-002-automatic-sync.md)を提案状態で追加した。非機密のBrowser Run/Cron fixture PoCとCloudflare公式仕様確認まで完了し、ユーザー承認を得たため、次はPoC専用Workerで1回の実ログイン検証を行う。実データ同期・D1投入・本番Cron有効化は別途Go/No-Goと承認が必要である。
+フェーズ3のローカル統合とCloudflare外部設定は完了した。finance Worker用D1/KVを作成し、リモートD1へ`schema.sql`と架空の`demo-data.sql`を適用済みである。GitHub OAuth App、Secrets、許可login、callback URLを設定し、finance Workerを本番デプロイ済みである。MCP InspectorでOAuth接続と5ツールの実応答を確認し、root Workerも`FINANCE_TOOL_ENABLED=true`で本番デプロイした。最終合成ターンではfunctionResponseを唯一の根拠とする指示を追加し、架空デモ値で自然文回答を再現確認した。さらに本番Workerで日付履歴付きの代表質問を実行し、食費55,000円・先月33,000円・差額+22,000円、鮮度stale、基準日時の反映を確認した。手動CSVなしの自動同期については、[ADR-002](adr-002-automatic-sync.md)を提案状態で追加した。非機密のBrowser Run/Cron fixture PoC、Browser Run接続、Money Forwardの実ログインPoC（OTP要求まで）を確認済みである。次はOTPを安全に扱う方式と、認証後の集計取得を検証する。実データ同期・D1投入・本番Cron有効化は別途Go/No-Goと承認が必要である。
 
 ### 外部設定確認の実績（2026-09-11）
 
@@ -400,3 +400,11 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 - `https://example.com`の公開ページ診断を1回実行したが、HTTP 400（本文なし）が再現した。標準CDPと旧互換経路の切り替えでは解消しなかった。
 - 診断用エンドポイントを削除し、標準設定・`POC_ENABLED=false`でWorkerを再デプロイした。
 - 次はCloudflareダッシュボードのBrowser Run利用状態・アカウント設定・サポートログを確認し、解消しない場合はBrowser Run案を採用しない。
+
+### PoC結果の訂正と更新（2026-09-12）
+
+- 先行記録のHTTP `400`はBrowser Run bindingの障害ではなく、`SYNC_POC_TOKEN`へ端末ANSI制御文字が混入し、AuthorizationヘッダーがCloudflare端で拒否されたことが原因だった。
+- トークンをASCIIの64文字hexへローテーションした後、同じWorkerから`https://example.com`を開く診断はHTTP `200`となり、Browser Runのアカウント・Worker bindingが利用可能であることを確認した。
+- Money Forwardの送信ボタンセレクタを`button#submitto`優先へ修正し、実ログインPoCはHTTP `200`で`OTP_REQUIRED`、`/email_otp`へ到達した。認証後の画面取得・OTP入力・セッション永続化を示すものではない。
+- 診断ルートを削除し、PoC専用Workerは`POC_ENABLED=false`へ戻した。実データの取得・D1投入・本番Cron有効化は未実施である。
+- 次のGo/No-Go判定は、OTPを安全に扱う方式と、認証後の必要集計を安定取得できるかの確認である。

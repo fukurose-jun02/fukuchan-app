@@ -185,6 +185,14 @@ No-Goの場合は、認証情報をローカルに限定するOption Aまたは�
 
 参照: [Limits](https://developers.cloudflare.com/browser-run/limits/)、[Pricing](https://developers.cloudflare.com/browser-run/pricing/)、[FAQ](https://developers.cloudflare.com/browser-run/faq/)
 
+## PoC結果の訂正と更新（2026-09-12）
+
+- 先行記録のHTTP `400`はBrowser Run bindingの障害ではなく、`SYNC_POC_TOKEN`へ端末ANSI制御文字が混入し、AuthorizationヘッダーがCloudflare端で拒否されたことが原因だった。
+- トークンを64文字hexへローテーションした後、同じWorkerから`https://example.com`を開く診断はHTTP `200`となった。CloudflareアカウントのBrowser Runセッション作成とWorker bindingの双方が利用可能であることを確認した。
+- Money Forwardの送信ボタンセレクタを`button#submitto`優先へ修正し、実ログインPoCはHTTP `200`で`OTP_REQUIRED`、`/email_otp`へ到達した。これは認証情報が受理されOTPが要求されたことを示すが、OTP入力後の認証完了やセッション永続化を示すものではない。
+- PoC Workerは診断ルート削除後に`POC_ENABLED=false`で無効化済みである。実データの取得・D1投入・本番Cron有効化は未実施である。
+- 以後のGo/No-Go判断はBrowser Run接続ではなく、OTPを含む認証フローを安全に運用できるか、認証後のMoney Forward画面から必要な集計を安定して取得できるかを基準とする。
+
 ## Money Forward ME公式利用規約の確認結果（2026-09-12）
 
 - 第11条では、マネーフォワードID・パスワードを利用者が管理し、貸与・譲渡・名義変更・売買・質入れや、方法を問わない第三者利用を禁止している。

@@ -10,3 +10,4 @@
 - OAuthクライアントは単一scopeの認可リクエストでscopeパラメータを省略することがある。scope省略を不正と決めつけず、サーバーの既定scopeを明示的に適用し、明示された未対応scopeだけを拒否する。
 - OAuth Providerの認可コード形式が内部の`userId`を区切り文字で連結する場合、`userId`へ同じ区切り文字を含めない。外部主体のprefixはスラッシュ等の安全な区切りへ分離し、実コード交換まで検証する。
 - Geminiのfunction callingはRPC往復が成功しても最終合成で旧ナレッジやモデル知識を優先することがある。functionResponse後のsystem instructionで結果を唯一の根拠と明示し、架空データの往復テストで金額・期間・鮮度を検証する。
+- Bearerトークンを端末から貼り付ける運用では、ANSI制御文字（`ESC[`）が混入するとCloudflare端でHTTP 400になり得る。秘密値はヘッダー安全な文字種で生成し、値を表示せず長さ・ASCII文字種だけを検証する。

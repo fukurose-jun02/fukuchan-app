@@ -90,7 +90,7 @@ export function classifyLoginState({ location, otpCount = 0, botCount = 0, error
 export const selectors = Object.freeze({
   email: 'input[name="mfid_user[email]"]',
   password: 'input[name="mfid_user[password]"]',
-  submit: 'button[type="submit"]',
+  submit: 'button#submitto, button[type="submit"]',
   otp: OTP_SELECTORS.join(', '),
   bot: BOT_SELECTORS.join(', '),
   error: ERROR_SELECTORS.join(', '),

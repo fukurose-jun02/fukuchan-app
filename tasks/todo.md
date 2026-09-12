@@ -469,7 +469,7 @@
 - [x] ローカルPoCを`wrangler dev --test-scheduled`で実行確認する
 - [x] Cloudflare公式仕様のBrowser Run費用・制限・Bot対策・セッション保持を確認する
 - [x] Money Forward ME公式利用規約の認証情報管理・自動接続に関する記載を確認する
-- [ ] Money Forward側でBrowser RunのBot対策・OTP・セッション継続可否を確認する
+- [x] Money Forward側でBrowser RunのBot対策・OTP・セッション継続可否を確認する（ログイン画面からOTP要求まで確認、OTP入力・セッション永続化は未実施）
 - [x] ユーザーからCloudflare SecretsへのMoney Forward認証情報保管と実ログインPoCの承認を得る
 - [x] 承認後にのみPoC専用Workerを実装し、実ログイン検証を行う
 
@@ -491,10 +491,11 @@
 - [x] ユーザーからCloudflare SecretsへのMoney Forward認証情報保管と実ログインPoCの承認を得る
 - [x] PoC専用WorkerにBrowser binding、認証情報参照、保護した手動起動口を実装する
 - [x] Money Forward認証情報を会話へ貼らず、ユーザー操作でCloudflare Secretsへ投入する
-- [x] 実ログインPoCを1回実行し、成功・Bot対策・OTP・セッション失効の状態だけを確認する（再試行を含めHTTP 400で判定未到達）
+- [x] 実ログインPoCを1回実行し、成功・Bot対策・OTP・セッション失効の状態だけを確認する（修正後に`OTP_REQUIRED`、`/email_otp`まで到達）
 - [x] PoC終了後に手動起動口を無効化し、セッション・一時データを残さない
 - [x] Wranglerを4.131.1へ合わせ、公開ページだけでBrowser Run接続を再診断する
 - [x] Cloudflare公式のCDP互換性切り戻しフラグでも公開ページ診断を行う
+- [x] CloudflareダッシュボードObservabilityでPoC WorkerのHTTP応答とWorker outcomeを確認する（過去イベントの`/health`=200、`/poc/login`=401、集計は2 Success/0 Errors）
 - [ ] 実データのD1投入・定期Cron有効化は、PoCのGo/No-Goと別途承認が完了するまで行わない
 
 ### Review
@@ -506,3 +507,6 @@
 - Money Forwardへ接続しない`https://example.com`の公開ページ診断もHTTP 400（本文なし）となったため、資格情報の正否ではなく、WorkerからBrowser Runを起動する経路の問題が疑われる。診断用エンドポイントは削除し、Workerを無効状態で再デプロイした。
 - Wranglerを4.131.1へ更新して同じ公開ページ診断を行ってもHTTP 400（本文なし）が再現した。バージョン差では解消しないため、Browser Runの利用状態・アカウント側設定またはCloudflare側の実行障害を確認する段階へ移る。
 - `no_websocket_standard_binary_type`をPoC専用Workerへ一時適用してもHTTP 400（本文なし）が再現した。診断後は標準設定へ戻し、Workerを無効状態で再デプロイした。
+- CloudflareダッシュボードObservabilityで`/health`=200と`/poc/login`=401（Worker outcome=`ok`）を確認した。集計は`2 Success / 0 Errors`で、HTTP 400の発生箇所は未確定のままである。Workerは無効状態を維持し、追加のBrowser Run・ログイン試行は行わない。
+- `SYNC_POC_TOKEN`にANSI制御文字が混入していたため、AuthorizationヘッダーがCloudflare端でHTTP 400になっていた。トークンを64文字hexへローテーションした後、公開サイト診断はHTTP 200となり、Browser Run bindingの正常動作を確認した。
+- Money Forwardログイン画面の送信ボタンセレクタを`button#submitto`優先へ修正し、実ログインPoCは`OTP_REQUIRED`（`/email_otp`）まで到達した。診断ルート削除と`POC_ENABLED=false`への復旧、`/health`=200・`/poc/login`=404を確認済みである。

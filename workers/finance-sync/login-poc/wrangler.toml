@@ -4,7 +4,8 @@ compatibility_date = "2026-09-12"
 compatibility_flags = ["nodejs_compat"]
 
 # PoC専用。定期CronやD1 bindingは持たせず、手動の保護済みエンドポイントだけを使う。
-browser = { binding = "BROWSER", remote = true }
+[browser]
+binding = "BROWSER"
 
 [vars]
 # デプロイ後、実ログインを行う直前だけtrueへ変更する。完了後はfalseへ戻す。
