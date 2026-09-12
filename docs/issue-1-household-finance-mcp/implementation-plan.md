@@ -359,4 +359,6 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 - Wrangler 4.129.0の`browser` CLIで、空のBrowser Runセッションを60秒だけ作成・表示確認・終了した。残存セッションは0件である。
 - `workers/finance-sync/poc/`に、Money Forward・Browser Run・D1へ接続しないCron fixture Workerを追加した。
 - fixtureテスト2件、`wrangler deploy --dry-run`、`wrangler dev --test-scheduled`での`/health`と`/__scheduled`呼び出しに成功した。
+- Browser Runで認証情報なしに`https://id.moneyforward.com/sign_in`へ到達し、origin・パス・読み込み完了状態を確認した。画面内容・Cookie・認証情報は保存していない。
+- Cloudflare公式仕様を確認した。Freeは1日10分・同時3ブラウザ、Paidは10時間/月を含み超過分はブラウザ時間$0.09/時間、アイドルタイムアウトは60秒（`keep_alive`で最大10分）、リクエストはBotトラフィックとして識別される。
 - 実データへのログイン、認証情報入力、Browser Runからの画面取得、D1投入、Cron本番デプロイはまだ実施していない。

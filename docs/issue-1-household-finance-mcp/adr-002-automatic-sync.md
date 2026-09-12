@@ -141,6 +141,17 @@ No-Goの場合は、認証情報をローカルに限定するOption Aまたは�
 
 1. [x] Browser Runの非機密起動PoCを実行する。
 2. [x] Cron Triggerの`scheduled()`を架空fixtureで実行する。
-3. [ ] Browser Runの費用・制限・Bot対策・セッション保持を確認する。
-4. [ ] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管をユーザーが承認するか決める。
-5. [ ] Go判定後にのみ、`workers/finance-sync`の実装と実データ検証へ進む。
+3. [x] 認証情報なしでMoney Forwardログイン画面へ到達できることを確認する。
+4. [x] Cloudflare公式仕様のBrowser Run費用・制限・Bot対策・セッション保持を確認する。
+5. [ ] Money Forward側でBrowser RunのBot対策・OTP・セッション継続可否を確認する。
+6. [ ] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管をユーザーが承認するか決める。
+7. [ ] Go判定後にのみ、`workers/finance-sync`の実装と実データ検証へ進む。
+
+## Cloudflare公式仕様の確認結果（2026-09-12）
+
+- Workers FreeはBrowser Runが1日10分、同時ブラウザ3、ブラウザ起動は20秒に1回、アイドルタイムアウトは60秒である。
+- Workers Paidはブラウザ時間10時間/月を含み、超過分はブラウザ時間$0.09/時間。Browser Sessionsは同時ブラウザ数も課金対象となる。
+- セッションは`keep_alive`で最大10分までアイドル時間を延長できる。明示的に`browser.close()`して使用量を解放する。
+- Browser Runのリクエストは常にBotトラフィックとして識別される。対象サイト側のBot対策・CAPTCHA・OTPを回避できるとは限らない。
+
+参照: [Limits](https://developers.cloudflare.com/browser-run/limits/)、[Pricing](https://developers.cloudflare.com/browser-run/pricing/)、[FAQ](https://developers.cloudflare.com/browser-run/faq/)
