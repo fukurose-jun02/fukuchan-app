@@ -126,7 +126,7 @@ wrangler dev -c <finance-worker-config>
 - [x] OAuth Providerを実装する
 - [x] OAuth client、暗号鍵、必要なKV等の設定項目をWranglerへ宣言する（本番実値はSecrets/Varsへ設定済み）
 - [x] 未認証、期限切れ、許可外ユーザーを拒否する
-- [ ] MCP Inspectorと対象クライアントで接続確認する
+- [x] MCP InspectorでOAuth接続と5ツールの実応答を確認する（実クライアントは別途）
 - [ ] ツール評価テストをCIへ追加する
 
 ### フェーズ2で先に実装する範囲
@@ -349,6 +349,6 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 - `npx wrangler deploy --config workers/finance-mcp/wrangler.toml --dry-run --secrets-file workers/finance-mcp/.dev.vars`成功後、本番デプロイを実行した。
 - 本番URLの`/health`はHTTP 200、未認証`POST /mcp`はHTTP 401、OAuthパラメータなし`/authorize`はHTTP 400を確認した。
 - Dynamic Client Registrationの疎通確認後、一時テストクライアントとKVキーを削除した。実ユーザーによるOAuth認証とMCPツール実応答は未確認である。
-- MCP Inspectorの初回OAuthでscope省略時に`invalid_scope`、再認証時に`Invalid authorization code format`となる不具合を確認した。scope省略時は`mcp:read`を既定付与し、明示された未対応scopeを拒否する修正に加え、Providerの区切り文字と衝突しないuserId形式へ変更した。OAuthテスト9件成功後にfinance Workerを再デプロイした。実ユーザーによる再認証とMCPツール実応答は未確認である。
-- MCP InspectorでOAuth接続後、`get_monthly_summary`、`get_category_breakdown`、`compare_months`の実応答を確認した。食費の同期間比較は33,000円から55,000円、差額22,000円、増減率66.7%となった。
+- MCP Inspectorの初回OAuthでscope省略時に`invalid_scope`、再認証時に`Invalid authorization code format`となる不具合を確認した。scope省略時は`mcp:read`を既定付与し、明示された未対応scopeを拒否する修正に加え、Providerの区切り文字と衝突しないuserId形式へ変更した。OAuthテスト9件成功後にfinance Workerを再デプロイし、MCP Inspectorで実ユーザーの再認証と5ツールの実応答を確認した。
+- MCP InspectorでOAuth接続後、5ツールすべての実応答を確認した。食費の同期間比較は33,000円から55,000円、差額22,000円、増減率66.7%となり、資産集計は純資産1,300,000円となった。
 - デモfixtureでは月次9月支出138,000円と日次同期間合計148,000円に10,000円の差がある。実データ投入前に同期exporterの月次・日次集計を照合し、fixtureも整合させる。

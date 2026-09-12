@@ -404,7 +404,7 @@
 - [x] `GITHUB_ALLOWED_LOGIN`とcallback URLをWrangler varsへ設定する
 - [x] `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`をWorkers Secretsへ登録する（値は会話へ貼らない）
 - [x] finance Workerをdry-run後に本番デプロイする
-- [ ] MCP Inspectorまたは実クライアントでOAuth接続と5ツールを確認する
+- [x] MCP InspectorでOAuth接続と5ツールを確認する（実クライアント接続は別途）
 
 ### 設定メモ
 
@@ -424,6 +424,7 @@
 - 本番smoke testで`/health`=200、未認証`POST /mcp`=401、OAuthパラメータなし`/authorize`=400を確認した。Dynamic Client Registrationの疎通確認後、一時テストクライアントは削除した。
 - MCP Inspectorの初回OAuthでscope省略時の`invalid_scope`、再認証時の`Invalid authorization code format`を確認した。scope既定付与と、認可コードの区切り文字と衝突しないuserId形式を実装して再デプロイした。OAuthテスト9件が成功した。
 - MCP InspectorでOAuth接続後、`get_monthly_summary`、`get_category_breakdown`、`compare_months`の実応答を確認した。食費は同期間で33,000円から55,000円へ22,000円（66.7%）増加した。
+- MCP Inspectorで`get_data_freshness`、`get_monthly_summary`、`get_category_breakdown`、`compare_months`、`get_asset_summary`の5ツールすべての実応答を確認した。資産は総資産1,500,000円、負債200,000円、純資産1,300,000円だった。
 - デモfixtureの月次9月支出138,000円と日次同期間合計148,000円に10,000円の差を検出した。実データ投入前に月次・日次集計の整合性を確認する。
 - 変更後の`npm test`（57件）と`git diff --check`が成功した。
 - 作業ログをコミットし、作業ツリーをクリーンにした。
