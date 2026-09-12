@@ -341,3 +341,11 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 - `npx wrangler d1 execute fukuchan-finance --remote --file workers/finance-mcp/schema.sql`：11クエリ成功、6つのアプリ用テーブルを作成した。
 - 架空`demo-data.sql`をリモート投入し、`sync_runs` 1件、`daily_summaries` 22件、`monthly_summaries` 2件、`category_daily_totals` 22件、`category_totals` 4件、`asset_summaries` 3件を確認した。
 - Secrets登録とWorkerデプロイは2026-09-12に実施済み。実データ投入は未実施。
+
+### OAuth設定・本番smoke test（2026-09-12）
+
+- GitHub OAuth Appのcallback URLを`https://fukuchan-finance-mcp.fukuchan-app.workers.dev/github/callback`へ設定し、許可loginをWrangler varsへ反映した。
+- `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`をローカルの`--secrets-file`からfinance Workerへ投入した。秘密値はリポジトリ・会話・ログへ記録していない。
+- `npx wrangler deploy --config workers/finance-mcp/wrangler.toml --dry-run --secrets-file workers/finance-mcp/.dev.vars`成功後、本番デプロイを実行した。
+- 本番URLの`/health`はHTTP 200、未認証`POST /mcp`はHTTP 401、OAuthパラメータなし`/authorize`はHTTP 400を確認した。
+- Dynamic Client Registrationの疎通確認後、一時テストクライアントとKVキーを削除した。実ユーザーによるOAuth認証とMCPツール実応答は未確認である。

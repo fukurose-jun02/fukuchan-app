@@ -420,11 +420,14 @@
 - `codex/issue-2-cloudflare-cicd`のfinance MCP実装を`main`へfast-forward統合した。
 - 統合後に`npm test`（57件）、root Worker dry-run、finance Worker dry-runを実行し、すべて成功した。
 - リモートD1には架空デモデータを投入済みで、active syncと代表集計を確認した。
+- GitHub OAuth Appの設定、許可login、callback URL、finance Worker Secretsを設定し、finance Workerを本番デプロイした。
+- 本番smoke testで`/health`=200、未認証`POST /mcp`=401、OAuthパラメータなし`/authorize`=400を確認した。Dynamic Client Registrationの疎通確認後、一時テストクライアントは削除した。
+- 変更後の`npm test`（57件）と`git diff --check`が成功した。
 - 作業ログをコミットし、作業ツリーをクリーンにした。
 
 ### 次回に残っていること
 
 - MCP Inspectorまたは実クライアントでOAuth接続と5ツールの実応答を確認する。
 - root Workerを`FINANCE_TOOL_ENABLED=true`で再デプロイし、代表質問の新旧比較を行う。
-- 検証後に必要なら`FINANCE_TOOL_ENABLED=true`へ切り替え、手動CSVまたは固定upstream SQLiteの同期exporterへ進む。
+- 検証後、手動CSVまたは固定upstream SQLiteの同期exporterへ進む。
 - GitHubへのpush／Pull Request作成は、ユーザー確認後に行う。
