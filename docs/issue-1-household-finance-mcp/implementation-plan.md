@@ -393,3 +393,10 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 - プロジェクトのWranglerを`4.129.0`からユーザー環境と同じ`4.131.1`へ更新し、全68テストとdry-runに成功した。
 - 同じ公開ページ診断を1回実行したが、HTTP 400（本文なし）が再現した。診断後はエンドポイントを削除し、`POC_ENABLED=false`で再デプロイした。
 - CLIバージョン差では解消しないため、次はCloudflareのBrowser Run利用状態・アカウント側設定・実行障害の確認とする。
+
+### CDP互換性フラグの切り分け（2026-09-12）
+
+- Cloudflare公式READMEに記載された`no_websocket_standard_binary_type`をPoC専用Workerへ一時適用した。
+- `https://example.com`の公開ページ診断を1回実行したが、HTTP 400（本文なし）が再現した。標準CDPと旧互換経路の切り替えでは解消しなかった。
+- 診断用エンドポイントを削除し、標準設定・`POC_ENABLED=false`でWorkerを再デプロイした。
+- 次はCloudflareダッシュボードのBrowser Run利用状態・アカウント設定・サポートログを確認し、解消しない場合はBrowser Run案を採用しない。
