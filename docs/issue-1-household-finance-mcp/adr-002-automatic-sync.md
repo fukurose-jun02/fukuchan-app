@@ -144,9 +144,10 @@ No-Goの場合は、認証情報をローカルに限定するOption Aまたは�
 3. [x] 認証情報なしでMoney Forwardログイン画面へ到達できることを確認する。
 4. [x] 未認証ログイン画面のフォーム構造とCAPTCHA/OTP表示の有無を確認する。
 5. [x] Cloudflare公式仕様のBrowser Run費用・制限・Bot対策・セッション保持を確認する。
-6. [ ] Money Forward側でBrowser RunのBot対策・OTP・セッション継続可否を確認する。
-7. [ ] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管をユーザーが承認するか決める。
-8. [ ] Go判定後にのみ、`workers/finance-sync`の実装と実データ検証へ進む。
+6. [x] Money Forward ME公式利用規約の認証情報管理・自動接続に関する記載を確認する。
+7. [ ] Money Forward側でBrowser RunのBot対策・OTP・セッション継続可否を確認する。
+8. [ ] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管をユーザーが承認するか決める。
+9. [ ] Go判定後にのみ、`workers/finance-sync`の実装と実データ検証へ進む。
 
 ## Cloudflare公式仕様の確認結果（2026-09-12）
 
@@ -156,3 +157,11 @@ No-Goの場合は、認証情報をローカルに限定するOption Aまたは�
 - Browser Runのリクエストは常にBotトラフィックとして識別される。対象サイト側のBot対策・CAPTCHA・OTPを回避できるとは限らない。
 
 参照: [Limits](https://developers.cloudflare.com/browser-run/limits/)、[Pricing](https://developers.cloudflare.com/browser-run/pricing/)、[FAQ](https://developers.cloudflare.com/browser-run/faq/)
+
+## Money Forward ME公式利用規約の確認結果（2026-09-12）
+
+- 第11条では、マネーフォワードID・パスワードを利用者が管理し、貸与・譲渡・名義変更・売買・質入れや、方法を問わない第三者利用を禁止している。
+- 同条では、Money Forwardのアグリゲーション先コンテンツサイトについて、口座情報取得のためのID・パスワード自動入力やAPI等による自動接続を、利用者自身が本サービスを利用して行う行為として扱い、その結果の責任を利用者が負うとしている。
+- これらはCloudflare保管の可否を直接許諾する記載ではない。実装前に、規約・契約・アカウント保護上のリスクをユーザー自身が確認し、採用可否を決める。
+
+参照: [マネーフォワード ME 利用規約](https://moneyforward.com/terms)

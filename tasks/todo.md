@@ -468,6 +468,7 @@
 - [x] Cron Triggerの`scheduled()`架空fixture呼び出しを確認するためのローカルPoCを作成する
 - [x] ローカルPoCを`wrangler dev --test-scheduled`で実行確認する
 - [x] Cloudflare公式仕様のBrowser Run費用・制限・Bot対策・セッション保持を確認する
+- [x] Money Forward ME公式利用規約の認証情報管理・自動接続に関する記載を確認する
 - [ ] Money Forward側でBrowser RunのBot対策・OTP・セッション継続可否を確認する
 - [ ] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管についてユーザー承認を得る
 - [ ] 承認後にのみ`workers/finance-sync`を実装し、実データ同期のGo/No-Goを判断する
@@ -482,4 +483,5 @@
 - Cron fixtureの応答は`Ran scheduled event`、Workerのhealthは`{"status":"ok","mode":"cron-fixture"}`だった。
 - Cloudflare公式仕様で、Free/ Paidの利用枠、セッションのアイドル終了、Bot識別、料金の扱いを確認した。Money Forward側での実際のBot対策・OTP・セッション継続可否は未確認である。
 - 未認証ログイン画面でメール欄・パスワード欄を確認し、CAPTCHA/OTPの表示は検出されなかった。これはログイン後の挙動を保証しない。
+- Money Forward ME公式利用規約を確認した。ID・パスワードの貸与・譲渡・第三者利用を禁止し、自動入力/API接続は利用者自身の行為として責任を負う旨がある。Cloudflareへの保管可否は、技術的に可能でも規約・利用者判断が必要である。
 - 次はMoney Forward側のログイン後のBot対策・OTP・セッション継続可否の確認だが、認証情報のCloudflare保管と実データ入力にはユーザー承認が必要である。
