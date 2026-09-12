@@ -7,8 +7,8 @@ compatibility_date = "2026-09-05"
 
 [vars]
 GITHUB_REPO = "fukurose-jun02/fukuchan-knowledge"
-# フェーズ3でfinance Workerを有効化するまでfalseのままにする。
-FINANCE_TOOL_ENABLED = "false"
+# finance Worker本番デプロイ済み。Gemini function callingで家計MCPを有効化する。
+FINANCE_TOOL_ENABLED = "true"
 
 # デプロイ時に、本番Workerへ必要なSecretsがすべて設定済みか検証する。
 # 値はCloudflare Workers Secretsで管理し、このファイルやGitHubには保存しない。

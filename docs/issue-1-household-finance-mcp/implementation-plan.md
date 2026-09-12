@@ -3,7 +3,7 @@
 対応要件: [requirements.md](requirements.md)  
 対応設計: [design.md](design.md)  
 作成日: 2026-09-11  
-状態: Phase 3 complete / Phase 5 rollout in progress（Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ済み、実データ・root Worker有効化・実クライアント接続待ち）
+状態: Phase 3 complete / Phase 5 rollout in progress（Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ・MCP Inspector 5ツール確認・root Worker finance有効化済み、実データ・実クライアント接続待ち）
 
 ## 1. 進め方
 
@@ -196,7 +196,7 @@ wrangler dev -c <finance-worker-config>
 - `fukuchan-app`へ`FINANCE_SERVICE` bindingと`FINANCE_TOOL_ENABLED`フラグを追加した。フラグがfalseなら旧CSV経路、trueなのにbindingが無ければ503で停止する。
 - Geminiのfunction callを最大2ラウンド処理し、未知ツール・不正引数・RPCエラーは固定エラーだけをfunction responseへ返すようにした。
 - `npm test`：57件すべて成功。root Workerとfinance Workerのdry-runも成功し、finance Workerを本番デプロイ済み。
-- 実データ、root Workerの`FINANCE_TOOL_ENABLED=true`切り替え、実クライアント接続は未実施。
+- 実データ同期と実クライアント接続は未実施。root Workerの`FINANCE_TOOL_ENABLED=true`切り替えと本番デプロイは完了した。
 
 ## 8. フェーズ4：同期exporter
 
@@ -330,7 +330,7 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 
 ## 15. 次に行うこと
 
-フェーズ3のローカル統合とCloudflare外部設定は完了した。finance Worker用D1/KVを作成し、リモートD1へ`schema.sql`と架空の`demo-data.sql`を適用済みである。GitHub OAuth App、Secrets、許可login、callback URLを設定し、finance Workerを本番デプロイ済みである。MCP InspectorでOAuth接続と5ツールの実応答も確認済みで、次はroot Workerの`FINANCE_TOOL_ENABLED=true`切り替え後に代表質問を検証する。その後、手動CSVまたは固定したupstream SQLiteからのフェーズ4同期exporterへ進む。同期元ホストとMoney Forward MEのWeb自動操作リスクは、実データ同期前に別途確定する。
+フェーズ3のローカル統合とCloudflare外部設定は完了した。finance Worker用D1/KVを作成し、リモートD1へ`schema.sql`と架空の`demo-data.sql`を適用済みである。GitHub OAuth App、Secrets、許可login、callback URLを設定し、finance Workerを本番デプロイ済みである。MCP InspectorでOAuth接続と5ツールの実応答を確認し、root Workerも`FINANCE_TOOL_ENABLED=true`で本番デプロイした。最終合成ターンではfunctionResponseを唯一の根拠とする指示を追加し、架空デモ値で自然文回答を再現確認した。その後、手動CSVまたは固定したupstream SQLiteからのフェーズ4同期exporterへ進む。同期元ホストとMoney Forward MEのWeb自動操作リスクは、実データ同期前に別途確定する。
 
 ### 外部設定確認の実績（2026-09-11）
 

@@ -175,7 +175,7 @@ SDKの`start_chat(history).send_message(message)`は「`history` + 今回の`mes
 
 `FINANCE_TOOL_ENABLED=true`かつ`FINANCE_SERVICE`が設定されている場合、`finance.csv`をナレッジへ含めず、P0の5つの読み取り専用function declarationだけをGeminiへ渡す。Geminiが返した`functionCall`は、`name`と`args`を共有zod契約で検証してからService Binding RPCへ渡す。
 
-RPC結果は次のターンの`functionResponse`として同じ`id`を付けて返し、Geminiの最終テキストを`reply`にする。ツールが未定義・引数不正・RPC失敗の場合は、固定されたエラーコードだけをfunction responseへ入れ、金額や認証情報をログへ出さない。最大2ラウンド、1ラウンド最大5呼び出しで打ち切る。
+RPC結果は次のターンの`functionResponse`として同じ`id`を付けて返し、Geminiの最終テキストを`reply`にする。最終合成ターンではfunction responseの`result`を家計回答の唯一の根拠とする指示を追加し、旧ナレッジやモデル知識の異なる金額を採用しない。ツールが未定義・引数不正・RPC失敗の場合は、固定されたエラーコードだけをfunction responseへ入れ、金額や認証情報をログへ出さない。最大2ラウンド、1ラウンド最大5呼び出しで打ち切る。
 
 finance WorkerのRPCメソッドはMCPと同じquery層を呼ぶため、外部MCPとふくちゃんトークで集計ロジックを二重実装しない。機能フラグが`false`の場合は従来どおり`finance.csv`を含む通常ナレッジ経路を使う。
 

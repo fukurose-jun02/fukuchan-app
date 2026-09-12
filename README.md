@@ -100,7 +100,7 @@ fukuchan-app/
 - 公開ツール：`get_data_freshness`、`get_monthly_summary`、`get_category_breakdown`、`compare_months`、`get_asset_summary`
 - データ：D1の集計値のみ。取引摘要、口座番号、認証情報、任意SQLは扱わない。
 - ふくちゃん統合：`FINANCE_TOOL_ENABLED=true`かつ`FINANCE_SERVICE`が設定された場合だけ、Geminiが5つの家計functionを選択し、Service Binding RPCで実行する。旧`finance.csv`は同時にGeminiへ渡さない。
-- finance WorkerのOAuth secrets設定と本番デプロイは完了。実クライアント接続、root Workerの`FINANCE_TOOL_ENABLED=true`切り替え、本番有効化、実データ同期は未実施。
+- finance WorkerのOAuth secrets設定・本番デプロイ・MCP Inspectorでの5ツール確認、root Workerの`FINANCE_TOOL_ENABLED=true`切り替え・本番デプロイは完了。実クライアント接続と実データ同期は未実施。
 
 ローカル契約テストは`npm test -- --run workers/finance-mcp/src/mcp.test.js workers/finance-mcp/src/oauth.test.js`で実行する。本番へ接続するには、Wranglerの`OAUTH_KV`、D1 ID、`GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`、許可login、GitHub OAuth callback URLを環境ごとに設定する。値はリポジトリへ保存しない。
 

@@ -102,6 +102,8 @@ describe('Gemini finance function-calling loop', () => {
     expect(reply).toContain('fresh');
     expect(requests).toHaveLength(2);
     expect(requests[0].tools[0].functionDeclarations).toHaveLength(5);
+    expect(requests[1].system_instruction.parts[0].text).toContain('唯一の根拠');
+    expect(requests[1].contents[1].role).toBe('model');
     expect(requests[1].contents[1].parts[0].functionCall.name).toBe('compare_months');
     expect(requests[1].contents[2].role).toBe('user');
     expect(requests[1].contents[2].parts[0].functionResponse).toMatchObject({

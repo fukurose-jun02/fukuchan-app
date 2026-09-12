@@ -415,13 +415,13 @@
 
 - [x] `demo-data.sql`の月次・日次合計を読み取り比較し、修正値を確定する
 - [x] 架空データの対象月だけをリモートD1で更新し、月次・日次・カテゴリ集計を再検証する
-- [ ] root Workerの`FINANCE_TOOL_ENABLED=true`をdry-runで確認する
-- [ ] root Workerを本番デプロイし、既存の認証・health・Service Bindingを確認する
+- [x] root Workerの`FINANCE_TOOL_ENABLED=true`をdry-runで確認する
+- [x] root Workerを本番デプロイし、既存の認証・health・Service Bindingを確認する
 - [ ] ふくちゃんの自然文質問でfinance function callingを確認する
 
 ## 本日の作業ログ（2026-09-12）
 
-状態: finance WorkerのOAuth設定・本番デプロイ・smoke testまで完了。次回は実OAuthクライアント接続から再開する。
+状態: finance WorkerのOAuth設定・本番デプロイ・MCP Inspector確認、root Workerのfinance有効化・再デプロイまで完了。実データ同期と実クライアント接続は未着手。
 
 ### 今日完了したこと
 
@@ -434,13 +434,15 @@
 - MCP InspectorでOAuth接続後、`get_monthly_summary`、`get_category_breakdown`、`compare_months`の実応答を確認した。食費は同期間で33,000円から55,000円へ22,000円（66.7%）増加した。
 - MCP Inspectorで`get_data_freshness`、`get_monthly_summary`、`get_category_breakdown`、`compare_months`、`get_asset_summary`の5ツールすべての実応答を確認した。資産は総資産1,500,000円、負債200,000円、純資産1,300,000円だった。
 - デモfixtureの月次9月支出を148,000円（収支152,000円）へ修正し、リモートD1で月次・日次合計が一致することを再検証した。
-- 変更後の`npm test`（57件）と`git diff --check`が成功した。
-- 作業ログをコミットし、作業ツリーをクリーンにした。
+- 最終合成ターンでfunctionResponseを唯一の根拠とするGemini指示を追加し、finance統合テストにその指示とモデルroleの検証を加えた。
+- 修正後の`npm test`（59件）、root Worker dry-run、root Worker本番デプロイ、`/health`=200・`/auth`=200を確認した。
+- 日付履歴を含む架空デモ値のGemini往復再現で、食費55,000円・先月33,000円・差額22,000円を正しく回答できることを確認した。
+- 本番の金融自然文再試行は、明示的な送信許可がないため実施していない。
 
 ### 次回に残っていること
 
-- MCP InspectorでOAuth接続と5ツールの実応答を確認する（実クライアント接続は別途）。
+- MCP InspectorでOAuth接続と5ツールの実応答を確認する（実クライアント接続は別途、確認済み）。
 - デモfixtureの月次・日次集計差分（9月10,000円）を原因特定し、整合性を取る（修正・リモート検証済み）。
-- root Workerを`FINANCE_TOOL_ENABLED=true`で再デプロイし、代表質問の新旧比較を行う。
+- root Workerを`FINANCE_TOOL_ENABLED=true`で再デプロイし、代表質問の新旧比較を行う（デプロイ済み。金融自然文の本番再試行は送信許可待ち）。
 - 検証後、手動CSVまたは固定upstream SQLiteの同期exporterへ進む。
 - GitHubへのpush／Pull Request作成は、ユーザー確認後に行う。

@@ -10,6 +10,15 @@ const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7日（design.md 5章）
 const FETCH_TIMEOUT_MS = 10000;
 const FINANCE_TOOL_MAX_ROUNDS = 2;
 const FINANCE_TOOL_MAX_CALLS_PER_ROUND = 5;
+const FINANCE_SYNTHESIS_INSTRUCTION = `
+
+## functionResponse後の最終回答ルール（厳格）
+直前のfunctionResponseに含まれるresultを、家計に関する唯一の根拠として使ってください。
+ナレッジ本文・過去の会話・モデル自身の知識にある別の金額や期間は無視し、resultにない金額を推測・補完しないでください。
+resultにcategoryがある場合は、そのカテゴリのbase_yen・compare_yen・delta_yen・change_rateを優先して説明してください。
+resultにエラーがある場合だけ、値を作らず取得できない理由を簡潔に伝えてください。
+日本語でふくちゃんらしく簡潔に答え、result.meta.asOfとresult.meta.freshnessがあれば必ず含めてください。
+`;
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_HISTORY_ITEMS = 40;
@@ -364,11 +373,16 @@ export async function callGeminiWithFinance(
     if (!modelContent || !Array.isArray(modelContent.parts)) {
       throw new Error('invalid_function_call_response');
     }
-    nextContents.push(modelContent);
+    // Geminiの候補contentはモデルターンとしてそのまま再送する。
+    // 応答側でroleが省略されるケースにも対応するため、roleだけは明示する。
+    nextContents.push({ ...modelContent, role: 'model' });
     const functionParts = await Promise.all(calls.map((call) => executeFinanceToolCall(service, call)));
     executedFunctionParts.push(...functionParts);
     nextContents.push({ role: 'user', parts: functionParts });
-    response = await callGemini(env, systemPrompt, nextContents, { tools, fetchImpl });
+    response = await callGemini(env, `${systemPrompt}${FINANCE_SYNTHESIS_INSTRUCTION}`, nextContents, {
+      tools,
+      fetchImpl,
+    });
     if (extractGeminiFunctionCalls(response).length === 0) {
       return appendFinanceMetadata(extractGeminiText(response), executedFunctionParts);
     }
