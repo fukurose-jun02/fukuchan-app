@@ -3,7 +3,7 @@
 対応要件: [requirements.md](requirements.md)  
 対応設計: [design.md](design.md)  
 作成日: 2026-09-11  
-状態: Phase 3 local implementation complete（Cloudflare認証・D1/KV作成・スキーマ適用済み、デモ/実データ・Secrets・本番デプロイ・実クライアント接続待ち）
+状態: Phase 3 local implementation complete（Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入済み、実データ・Secrets・本番デプロイ・実クライアント接続待ち）
 
 ## 1. 進め方
 
@@ -330,13 +330,14 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 
 ## 15. 次に行うこと
 
-フェーズ3のローカル統合とWrangler OAuth認証確認は完了した。ユーザー承認によりfinance Worker用D1/KVを作成し、設定へIDを反映したうえで、リモートD1へ`schema.sql`を適用済みである。6つのアプリ用テーブルは空の状態で、GitHub OAuth App、Secrets、callback URL、Workerデプロイ、デモ/実データ投入は未実施である。`gh` CLI未導入のため実装用GitHub Issue作成も保留している。次はローカルD1のデモデータで照会契約を再確認し、SecretsとOAuth設定を準備したうえで、MCP Inspectorまたは実クライアントの認証接続を確認する。その後、手動CSVまたは固定したupstream SQLiteからのフェーズ4同期exporterへ進む。同期元ホストとMoney Forward MEのWeb自動操作リスクは、実データ同期前に別途確定する。
+フェーズ3のローカル統合とWrangler OAuth認証確認は完了した。ユーザー承認によりfinance Worker用D1/KVを作成し、設定へIDを反映したうえで、リモートD1へ`schema.sql`と架空の`demo-data.sql`を適用済みである。6つのアプリ用テーブルには架空デモデータが入り、GitHub OAuth App、Secrets、callback URL、Workerデプロイ、実データ投入は未実施である。`gh` CLI未導入のため実装用GitHub Issue作成も保留している。次はGitHub OAuth AppとSecretsを準備し、finance WorkerをデプロイしてMCP Inspectorまたは実クライアントの認証接続を確認する。その後、手動CSVまたは固定したupstream SQLiteからのフェーズ4同期exporterへ進む。同期元ホストとMoney Forward MEのWeb自動操作リスクは、実データ同期前に別途確定する。
 
 ### 外部設定確認の実績（2026-09-11）
 
 - `npx wrangler whoami`：対象CloudflareアカウントへのOAuthログインを確認した。
-- `npx wrangler d1 list`：`fukuchan-finance`を作成済み（作成直後でテーブル数0）。
+- `npx wrangler d1 list`：`fukuchan-finance`を作成済み。
 - `npx wrangler kv namespace list`：`OAUTH_KV`を作成済み（保存データなし）。
 - 発行されたIDを`workers/finance-mcp/wrangler.toml`へ反映し、finance Worker dry-runでD1/KVバインディングを確認した。
-- `npx wrangler d1 execute fukuchan-finance --remote --file workers/finance-mcp/schema.sql`：11クエリ成功、6つのアプリ用テーブルを作成した。各テーブルの行数は0。
-- Secrets登録、デモ/実データ投入、Workerデプロイは未実施。
+- `npx wrangler d1 execute fukuchan-finance --remote --file workers/finance-mcp/schema.sql`：11クエリ成功、6つのアプリ用テーブルを作成した。
+- 架空`demo-data.sql`をリモート投入し、`sync_runs` 1件、`daily_summaries` 22件、`monthly_summaries` 2件、`category_daily_totals` 22件、`category_totals` 4件、`asset_summaries` 3件を確認した。
+- Secrets登録、実データ投入、Workerデプロイは未実施。

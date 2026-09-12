@@ -393,6 +393,21 @@
 - finance Worker dry-run：リモートD1とKVバインディングを確認。
 - GitHub OAuth App、Secrets、本番Workerデプロイ、`FINANCE_TOOL_ENABLED=true`への切り替えは未実施。
 
+## OAuth設定準備計画（2026-09-12）
+
+- [x] 実装・設定・作業ログの状態をCloudflare上のD1/KV・デモデータと照合する
+- [x] GitHub OAuthで必要な入力（Client ID/Secret、許可login、callback URL）を整理する
+- [ ] GitHub OAuth Appを作成する（ユーザー操作）
+- [ ] `GITHUB_ALLOWED_LOGIN`とcallback URLをWrangler varsへ設定する
+- [ ] `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`をWorkers Secretsへ登録する（値は会話へ貼らない）
+- [ ] finance Workerをdry-run後に本番デプロイする
+- [ ] MCP Inspectorまたは実クライアントでOAuth接続と5ツールを確認する
+
+### 設定メモ
+
+- Worker名は`fukuchan-finance-mcp`。既存のroot Worker URLから推定したcallback URL候補は`https://fukuchan-finance-mcp.fukuchan-app.workers.dev/github/callback`。デプロイ後に実URLを確認してGitHub OAuth Appと完全一致させる。
+- 実装がGitHubへ要求するOAuth scopeは`read:user`のみ。許可loginは推測で設定せず、ユーザーが指定したGitHub loginを使う。
+
 ## 本日の作業ログ（2026-09-12）
 
 状態: ユーザー指示により本日はここで中断。次回はOAuth設定から再開する。
