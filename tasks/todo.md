@@ -453,7 +453,7 @@
 - [x] 手動CSVを前提にせず、Cloudflare定期同期を第一候補として整理する
 - [x] 同期専用Worker、Cron Trigger、Browser Run / Playwright、D1 staging/activeの構成案を作る
 - [ ] Browser RunでMoney Forwardのログイン・読み取りPoCを実施する
-- [ ] Cloudflare SecretsへMoney Forward認証情報を保存する方針を最終承認する
+- [x] ユーザーからCloudflare SecretsへのMoney Forward認証情報保管と実ログインPoCの承認を得る
 - [ ] OTP・Bot対策・失敗時のstale運用を確定する
 - [ ] 1時間ごとのCron同期を実装し、実データのGo/No-Goを判断する
 
@@ -470,8 +470,8 @@
 - [x] Cloudflare公式仕様のBrowser Run費用・制限・Bot対策・セッション保持を確認する
 - [x] Money Forward ME公式利用規約の認証情報管理・自動接続に関する記載を確認する
 - [ ] Money Forward側でBrowser RunのBot対策・OTP・セッション継続可否を確認する
-- [ ] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管についてユーザー承認を得る
-- [ ] 承認後にのみ`workers/finance-sync`を実装し、実データ同期のGo/No-Goを判断する
+- [x] ユーザーからCloudflare SecretsへのMoney Forward認証情報保管と実ログインPoCの承認を得る
+- [x] 承認後にのみPoC専用Workerを実装し、実ログイン検証を行う
 
 ### Review（2026-09-12）
 
@@ -484,4 +484,18 @@
 - Cloudflare公式仕様で、Free/ Paidの利用枠、セッションのアイドル終了、Bot識別、料金の扱いを確認した。Money Forward側での実際のBot対策・OTP・セッション継続可否は未確認である。
 - 未認証ログイン画面でメール欄・パスワード欄を確認し、CAPTCHA/OTPの表示は検出されなかった。これはログイン後の挙動を保証しない。
 - Money Forward ME公式利用規約を確認した。ID・パスワードの貸与・譲渡・第三者利用を禁止し、自動入力/API接続は利用者自身の行為として責任を負う旨がある。Cloudflareへの保管可否は、技術的に可能でも規約・利用者判断が必要である。
-- 次はMoney Forward側のログイン後のBot対策・OTP・セッション継続可否の確認だが、認証情報のCloudflare保管と実データ入力にはユーザー承認が必要である。
+- 次はPoC専用Workerの実装と、Money Forward側のログイン後のBot対策・OTP・セッション継続可否の確認である。実データ投入・本番Cron有効化は別途承認が必要である。
+
+## 実ログインPoC（Cloudflare Secrets保管の承認後、2026-09-12）
+
+- [x] ユーザーからCloudflare SecretsへのMoney Forward認証情報保管と実ログインPoCの承認を得る
+- [x] PoC専用WorkerにBrowser binding、認証情報参照、保護した手動起動口を実装する
+- [ ] Money Forward認証情報を会話へ貼らず、ユーザー操作でCloudflare Secretsへ投入する
+- [ ] 実ログインPoCを1回実行し、成功・Bot対策・OTP・セッション失効の状態だけを確認する
+- [ ] PoC終了後に手動起動口を無効化し、セッション・一時データを残さない
+- [ ] 実データのD1投入・定期Cron有効化は、PoCのGo/No-Goと別途承認が完了するまで行わない
+
+### Review
+
+- ユーザーは`おｋ`で、Cloudflare SecretsへのMoney Forward認証情報保管と1回の実ログインPoCを承認した。
+- 承認範囲はPoCに限定し、認証情報の会話・Git・ログへの出力、Geminiへの実データ送信、D1への実データ投入、本番Cron有効化、セッション永続化は含まない。

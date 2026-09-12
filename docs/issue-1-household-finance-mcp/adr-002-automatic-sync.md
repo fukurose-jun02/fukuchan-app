@@ -1,6 +1,6 @@
 # ADR-002：手動CSVなしの家計データ自動同期
 
-**Status:** Proposed（ユーザー承認待ち）  
+**Status:** Proposed（認証情報保管と実ログインPoCは承認済み、実運用採用は未確定）
 **Date:** 2026-09-12  
 **Deciders:** プロジェクト管理者、実装担当AI
 
@@ -44,7 +44,7 @@ D1 stagingへ投入 → activeへ切り替え
 2. 同期Workerは別Workerとして分離し、Cron実行とMCP照会の障害影響を分ける。
 3. D1は`staging`へ全量を検証してから、成功時だけ`active`を切り替える。失敗時は直前の`active`を維持し、`stale`として返す。
 4. Geminiへ送るのは質問に必要な集計結果・鮮度・基準日時だけで、Money Forwardの認証情報や取引明細は送らない。
-5. 実データへのログイン・取得は、PoCのGo判定とユーザーの認証情報保管承認が済むまで行わない。
+5. 実データへのログイン・取得は、承認済みの1回限りの実ログインPoCに限定し、実運用同期は別のGo判定が済むまで行わない。
 
 ## Options Considered
 
@@ -146,8 +146,15 @@ No-Goの場合は、認証情報をローカルに限定するOption Aまたは�
 5. [x] Cloudflare公式仕様のBrowser Run費用・制限・Bot対策・セッション保持を確認する。
 6. [x] Money Forward ME公式利用規約の認証情報管理・自動接続に関する記載を確認する。
 7. [ ] Money Forward側でBrowser RunのBot対策・OTP・セッション継続可否を確認する。
-8. [ ] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管をユーザーが承認するか決める。
+8. [x] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管と1回の実ログインPoCをユーザーが承認した。
 9. [ ] Go判定後にのみ、`workers/finance-sync`の実装と実データ検証へ進む。
+
+## 承認記録（2026-09-12）
+
+- ユーザーは`おｋ`で、Money Forwardの認証情報をCloudflare Secretsへ保管し、実ログインPoCを1回実行することを承認した。
+- 承認範囲は検証目的に限る。認証情報を会話・Git・ログへ出力しないこと、Geminiへ実データを送らないこと、D1へ実データを投入しないこと、本番Cronを有効化しないこと、ブラウザセッションを永続化しないことを不変条件とする。
+- PoCではログイン成功、Bot対策、OTP要求、セッション失効の状態だけを分類し、画面本文・Cookie・取引明細・スクリーンショットは保存しない。
+- 実データ同期、staging/active切り替え、1時間ごとの本番Cron、継続セッション運用は、PoCのGo/No-Goと別途のユーザー承認が完了するまで開始しない。
 
 ## Cloudflare公式仕様の確認結果（2026-09-12）
 

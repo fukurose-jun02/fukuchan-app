@@ -13,6 +13,7 @@ finance.csv
 /.dev.vars
 /workers/finance-mcp/.dev.vars
 /workers/finance-mcp/.dev.vars.save
+/workers/finance-sync/login-poc/.dev.vars
 node_modules/
 .wrangler/
 

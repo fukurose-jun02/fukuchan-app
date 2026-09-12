@@ -3,7 +3,7 @@
 対応要件: [requirements.md](requirements.md)  
 対応設計: [design.md](design.md)  
 作成日: 2026-09-11  
-状態: Phase 3 complete / Phase 5 rollout in progress（Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ・MCP Inspector 5ツール確認・root Worker finance有効化・本番デモ自然文確認・自動同期の非機密PoC確認済み、実データ・実クライアント接続待ち）
+状態: Phase 3 complete / Phase 5 rollout in progress（Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ・MCP Inspector 5ツール確認・root Worker finance有効化・本番デモ自然文確認・自動同期の非機密PoC確認済み・実ログインPoC承認済み、実データ同期・本番Cron待ち）
 
 ## 1. 進め方
 
@@ -330,7 +330,7 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 
 ## 15. 次に行うこと
 
-フェーズ3のローカル統合とCloudflare外部設定は完了した。finance Worker用D1/KVを作成し、リモートD1へ`schema.sql`と架空の`demo-data.sql`を適用済みである。GitHub OAuth App、Secrets、許可login、callback URLを設定し、finance Workerを本番デプロイ済みである。MCP InspectorでOAuth接続と5ツールの実応答を確認し、root Workerも`FINANCE_TOOL_ENABLED=true`で本番デプロイした。最終合成ターンではfunctionResponseを唯一の根拠とする指示を追加し、架空デモ値で自然文回答を再現確認した。さらに本番Workerで日付履歴付きの代表質問を実行し、食費55,000円・先月33,000円・差額+22,000円、鮮度stale、基準日時の反映を確認した。手動CSVなしの自動同期については、[ADR-002](adr-002-automatic-sync.md)を提案状態で追加した。次は実データを使わないBrowser Run起動PoCとCronの架空fixture確認を行い、認証情報をCloudflareへ保管するかの承認後に、実データ同期へ進む。
+フェーズ3のローカル統合とCloudflare外部設定は完了した。finance Worker用D1/KVを作成し、リモートD1へ`schema.sql`と架空の`demo-data.sql`を適用済みである。GitHub OAuth App、Secrets、許可login、callback URLを設定し、finance Workerを本番デプロイ済みである。MCP InspectorでOAuth接続と5ツールの実応答を確認し、root Workerも`FINANCE_TOOL_ENABLED=true`で本番デプロイした。最終合成ターンではfunctionResponseを唯一の根拠とする指示を追加し、架空デモ値で自然文回答を再現確認した。さらに本番Workerで日付履歴付きの代表質問を実行し、食費55,000円・先月33,000円・差額+22,000円、鮮度stale、基準日時の反映を確認した。手動CSVなしの自動同期については、[ADR-002](adr-002-automatic-sync.md)を提案状態で追加した。非機密のBrowser Run/Cron fixture PoCとCloudflare公式仕様確認まで完了し、ユーザー承認を得たため、次はPoC専用Workerで1回の実ログイン検証を行う。実データ同期・D1投入・本番Cron有効化は別途Go/No-Goと承認が必要である。
 
 ### 外部設定確認の実績（2026-09-11）
 
@@ -364,3 +364,19 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 - Cloudflare公式仕様を確認した。Freeは1日10分・同時3ブラウザ、Paidは10時間/月を含み超過分はブラウザ時間$0.09/時間、アイドルタイムアウトは60秒（`keep_alive`で最大10分）、リクエストはBotトラフィックとして識別される。
 - Money Forward ME公式利用規約を確認した。ID・パスワードの貸与・譲渡・第三者利用を禁止し、アグリゲーション先コンテンツサイトへの自動入力/API接続は利用者自身の行為として責任を負う旨がある。Cloudflareへの認証情報保管は、ユーザーの規約・セキュリティ判断を経るまで実施しない。
 - 実データへのログイン、認証情報入力、Browser Runからの画面取得、D1投入、Cron本番デプロイはまだ実施していない。
+
+### 実ログインPoCの承認（2026-09-12）
+
+- ユーザーはCloudflare SecretsへのMoney Forward認証情報保管と、実ログインPoCを1回実行することを承認した。
+- PoCの目的はログイン成功、Bot対策、OTP要求、セッション失効の状態分類だけとする。画面本文、Cookie、取引明細、スクリーンショット、一時セッションは保存しない。
+- 認証情報は会話・Git・ログへ出力せず、Geminiへの実データ送信、D1への実データ投入、本番Cron有効化、セッション永続化は行わない。
+- PoC結果をもとにGo/No-Goを判断し、実データ同期へ進む場合は別途ユーザー承認を得る。
+
+### 実ログインPoC専用Workerの実装（2026-09-12）
+
+- `workers/finance-sync/login-poc/`に、定期Cron・D1 bindingを持たない専用Workerを追加した。
+- Browser Run bindingは`BROWSER`、実行口は`POST /poc/login`とし、`SYNC_POC_TOKEN`のBearer認証と`POC_ENABLED=true`の二重ゲートを設けた。
+- `MF_LOGIN_EMAIL`と`MF_LOGIN_PASSWORD`はWorker Secretsからだけ参照し、レスポンス・ログへ値を出さない。
+- 結果は`AUTHENTICATED`、`AUTH_FAILED`、`OTP_REQUIRED`、`BOT_BLOCKED`、`BROWSER_ERROR`、`UNEXPECTED_STATE`の粗い分類とorigin/pathだけを返す。Cookie、画面本文、取引明細、スクリーンショット、Storage Stateは保存しない。
+- `finally`でBrowser Runを閉じる。PoC専用Workerには本番Cronを設定せず、PoC終了後は`POC_ENABLED=false`へ戻して手動起動口を無効化する。
+- Wrangler dry-runは成功したが、必須Secrets未投入のため初回デプロイはまだ行っていない。ユーザーがローカルの無視対象Secretsファイルへ値を入力した後、`--secrets-file`で一度だけデプロイする。

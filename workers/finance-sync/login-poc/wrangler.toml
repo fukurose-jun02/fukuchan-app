@@ -1,0 +1,17 @@
+name = "fukuchan-finance-login-poc"
+main = "src/index.js"
+compatibility_date = "2026-09-12"
+compatibility_flags = ["nodejs_compat"]
+
+# PoC専用。定期CronやD1 bindingは持たせず、手動の保護済みエンドポイントだけを使う。
+browser = { binding = "BROWSER", remote = true }
+
+[vars]
+# デプロイ後、実ログインを行う直前だけtrueへ変更する。完了後はfalseへ戻す。
+POC_ENABLED = "false"
+
+[secrets]
+required = ["MF_LOGIN_EMAIL", "MF_LOGIN_PASSWORD", "SYNC_POC_TOKEN"]
+
+[observability]
+enabled = true
