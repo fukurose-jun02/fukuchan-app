@@ -422,6 +422,7 @@
 - リモートD1には架空デモデータを投入済みで、active syncと代表集計を確認した。
 - GitHub OAuth Appの設定、許可login、callback URL、finance Worker Secretsを設定し、finance Workerを本番デプロイした。
 - 本番smoke testで`/health`=200、未認証`POST /mcp`=401、OAuthパラメータなし`/authorize`=400を確認した。Dynamic Client Registrationの疎通確認後、一時テストクライアントは削除した。
+- MCP Inspectorの初回OAuthでscope省略時に`invalid_scope`となる不具合を確認し、単一scopeの既定付与と未対応scope拒否を実装して再デプロイした。OAuthテスト9件が成功した。
 - 変更後の`npm test`（57件）と`git diff --check`が成功した。
 - 作業ログをコミットし、作業ツリーをクリーンにした。
 

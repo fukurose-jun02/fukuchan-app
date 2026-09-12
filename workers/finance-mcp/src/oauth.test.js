@@ -87,6 +87,50 @@ describe('GitHub OAuth bridge', () => {
     expect(testEnv.OAUTH_KV.values.size).toBe(0);
   });
 
+  it('scope省略時は唯一のmcp:read scopeを既定付与する', async () => {
+    const testEnv = env();
+    testEnv.OAUTH_KV.values.set(
+      'github-oauth-state:state-no-scope',
+      JSON.stringify({ responseType: 'code', clientId: 'inspector', redirectUri: 'http://127.0.0.1/callback', scope: [], state: 'client-state' })
+    );
+    let completed;
+    testEnv.OAUTH_PROVIDER.completeAuthorization = async (options) => {
+      completed = options;
+      return { redirectTo: 'http://127.0.0.1/callback?code=issued' };
+    };
+    const fetchImpl = async (url) => url.includes('access_token')
+      ? Response.json({ access_token: 'github-token' })
+      : Response.json({ login: 'fukurosejun' });
+    const response = await completeGitHubAuthorization(
+      new Request('https://finance.example.com/github/callback?code=code-no-scope&state=state-no-scope'),
+      testEnv,
+      fetchImpl
+    );
+    expect(response.status).toBe(302);
+    expect(completed.scope).toEqual(['mcp:read']);
+  });
+
+  it('未対応scopeを明示した場合はgrantを発行しない', async () => {
+    const testEnv = env();
+    testEnv.OAUTH_KV.values.set('github-oauth-state:state-invalid-scope', JSON.stringify({
+      scope: ['openid'],
+      redirectUri: 'http://127.0.0.1/callback',
+      state: 'client-state',
+    }));
+    let completed = false;
+    testEnv.OAUTH_PROVIDER.completeAuthorization = async () => { completed = true; return {}; };
+    const response = await completeGitHubAuthorization(
+      new Request('https://finance.example.com/github/callback?code=code-invalid-scope&state=state-invalid-scope'),
+      testEnv,
+      async (url) => url.includes('access_token')
+        ? Response.json({ access_token: 'github-token' })
+        : Response.json({ login: 'fukurosejun' })
+    );
+    expect(response.status).toBe(302);
+    expect(new URL(response.headers.get('Location')).searchParams.get('error')).toBe('invalid_scope');
+    expect(completed).toBe(false);
+  });
+
   it('許可リスト外のGitHub loginは403で、grantを発行しない', async () => {
     const testEnv = env();
     testEnv.OAUTH_KV.values.set('github-oauth-state:state-2', JSON.stringify({

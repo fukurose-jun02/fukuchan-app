@@ -182,10 +182,16 @@ export async function completeGitHubAuthorization(request, env, fetchImpl = fetc
   }
 
   try {
-    const grantedScope = Array.isArray(authRequest.scope)
-      ? authRequest.scope.filter((scope) => scope === 'mcp:read')
-      : [];
-    if (grantedScope.length === 0) {
+    const requestedScopes = Array.isArray(authRequest.scope)
+      ? authRequest.scope
+      : typeof authRequest.scope === 'string'
+        ? authRequest.scope.split(' ').filter(Boolean)
+        : [];
+    // OAuth clients may omit scope when the authorization server has a
+    // single supported scope. Default that case to mcp:read, while rejecting
+    // any explicitly requested scope that this server does not support.
+    const grantedScope = requestedScopes.length === 0 ? ['mcp:read'] : requestedScopes;
+    if (grantedScope.some((scope) => scope !== 'mcp:read')) {
       return redirectClientError(authRequest, 'invalid_scope', 'mcp:read scope is required');
     }
     const result = await env.OAUTH_PROVIDER.completeAuthorization({
