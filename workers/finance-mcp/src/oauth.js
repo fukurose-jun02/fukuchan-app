@@ -196,7 +196,10 @@ export async function completeGitHubAuthorization(request, env, fetchImpl = fetc
     }
     const result = await env.OAUTH_PROVIDER.completeAuthorization({
       request: authRequest,
-      userId: `github:${login.toLowerCase()}`,
+      // The OAuth provider serializes authorization codes as
+      // `${userId}:${grantId}:${secret}`. Keep the provider prefix out of the
+      // colon-delimited userId so codes remain exactly three parts.
+      userId: `github/${login.toLowerCase()}`,
       metadata: { provider: 'github' },
       scope: grantedScope,
       props: { githubLogin: login.toLowerCase() },

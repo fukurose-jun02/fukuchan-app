@@ -82,7 +82,7 @@ describe('GitHub OAuth bridge', () => {
       fetchImpl
     );
     expect(response.status).toBe(302);
-    expect(completed.userId).toBe('github:fukurosejun');
+    expect(completed.userId).toBe('github/fukurosejun');
     expect(completed.props).toEqual({ githubLogin: 'fukurosejun' });
     expect(testEnv.OAUTH_KV.values.size).toBe(0);
   });

@@ -349,4 +349,4 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 - `npx wrangler deploy --config workers/finance-mcp/wrangler.toml --dry-run --secrets-file workers/finance-mcp/.dev.vars`成功後、本番デプロイを実行した。
 - 本番URLの`/health`はHTTP 200、未認証`POST /mcp`はHTTP 401、OAuthパラメータなし`/authorize`はHTTP 400を確認した。
 - Dynamic Client Registrationの疎通確認後、一時テストクライアントとKVキーを削除した。実ユーザーによるOAuth認証とMCPツール実応答は未確認である。
-- MCP Inspectorの初回OAuthでscope省略時に`invalid_scope`となる不具合を確認した。scope省略時は`mcp:read`を既定付与し、明示された未対応scopeを拒否する修正を行い、OAuthテスト9件成功後にfinance Workerを再デプロイした。実ユーザーによる再認証とMCPツール実応答は未確認である。
+- MCP Inspectorの初回OAuthでscope省略時に`invalid_scope`、再認証時に`Invalid authorization code format`となる不具合を確認した。scope省略時は`mcp:read`を既定付与し、明示された未対応scopeを拒否する修正に加え、Providerの区切り文字と衝突しないuserId形式へ変更した。OAuthテスト9件成功後にfinance Workerを再デプロイした。実ユーザーによる再認証とMCPツール実応答は未確認である。
