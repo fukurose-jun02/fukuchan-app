@@ -399,7 +399,7 @@
 - [x] GitHub OAuthで必要な入力（Client ID/Secret、許可login、callback URL）を整理する
 - [x] finance Worker専用`.dev.vars`をgitignoreへ追加し、Secrets投入手順を分離する
 - [x] finance Workerのデプロイ履歴を読み取り確認する（未デプロイを確認）
-- [x] finance Worker用`.dev.vars`の存在を値非表示で確認する（未作成）
+- [x] finance Worker用`.dev.vars`の存在を値非表示で確認する（3項目設定済み、権限600へ変更済み）
 - [ ] GitHub OAuth Appを作成する（ユーザー操作）
 - [ ] `GITHUB_ALLOWED_LOGIN`とcallback URLをWrangler varsへ設定する
 - [ ] `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`をWorkers Secretsへ登録する（値は会話へ貼らない）
