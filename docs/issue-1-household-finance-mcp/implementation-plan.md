@@ -3,7 +3,7 @@
 対応要件: [requirements.md](requirements.md)  
 対応設計: [design.md](design.md)  
 作成日: 2026-09-11  
-状態: Phase 3 local implementation complete（Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入済み、実データ・Secrets・本番デプロイ・実クライアント接続待ち）
+状態: Phase 3 complete / Phase 5 rollout in progress（Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ済み、実データ・root Worker有効化・実クライアント接続待ち）
 
 ## 1. 進め方
 
@@ -124,7 +124,7 @@ wrangler dev -c <finance-worker-config>
 - [x] 5つのMCPツールへquery層を接続する
 - [x] 入力スキーマを定義し、月形式・件数上限を検証する
 - [x] OAuth Providerを実装する
-- [x] OAuth client、暗号鍵、必要なKV等の設定項目をWranglerへ宣言する（実値は未設定）
+- [x] OAuth client、暗号鍵、必要なKV等の設定項目をWranglerへ宣言する（本番実値はSecrets/Varsへ設定済み）
 - [x] 未認証、期限切れ、許可外ユーザーを拒否する
 - [ ] MCP Inspectorと対象クライアントで接続確認する
 - [ ] ツール評価テストをCIへ追加する
@@ -144,7 +144,7 @@ wrangler dev -c <finance-worker-config>
 - GitHub OAuth callbackでは`read:user`だけを要求し、許可login以外、state不一致、GitHub上流障害をfail-closedにした。
 - 実トークンを保存・ログ出力せず、OAuth Providerの`ctx.props`からMCPへは認証済みマーカーと最小の主体情報だけを渡す。
 - 未認証アクセスのローカルsmoke testはHTTP 401、`/health`はHTTP 200を確認した。
-- 本番D1/KV ID、GitHub OAuth secrets、callback URLは未設定で、デプロイはdry-runのみ。
+- 本番D1/KV ID、GitHub OAuth secrets、許可login、callback URLを設定し、finance Workerを本番デプロイ済みである。実クライアント接続は未確認。
 
 ### セキュリティゲート
 
@@ -195,8 +195,8 @@ wrangler dev -c <finance-worker-config>
 - finance Workerの`WorkerEntrypoint`へP0の5 RPCメソッドを追加し、RPC境界でもzod入力検証を行うようにした。
 - `fukuchan-app`へ`FINANCE_SERVICE` bindingと`FINANCE_TOOL_ENABLED`フラグを追加した。フラグがfalseなら旧CSV経路、trueなのにbindingが無ければ503で停止する。
 - Geminiのfunction callを最大2ラウンド処理し、未知ツール・不正引数・RPCエラーは固定エラーだけをfunction responseへ返すようにした。
-- `npm test`：57件すべて成功。root Workerとfinance Workerのdry-runも成功した（本番デプロイは未実施）。
-- 実データ、Cloudflare本番D1/KV、GitHub OAuth secrets、実クライアント接続は未実施。
+- `npm test`：57件すべて成功。root Workerとfinance Workerのdry-runも成功し、finance Workerを本番デプロイ済み。
+- 実データ、root Workerの`FINANCE_TOOL_ENABLED=true`切り替え、実クライアント接続は未実施。
 
 ## 8. フェーズ4：同期exporter
 
@@ -232,7 +232,7 @@ wrangler dev -c <finance-worker-config>
 
 ### 作業
 
-- [ ] finance WorkerとD1を本番へデプロイする
+- [x] finance WorkerとD1を本番へデプロイする（D1スキーマ・架空デモデータ適用済み、Workerは2026-09-12デプロイ）
 - [ ] OAuth認証を本番URLで確認する
 - [ ] `fukuchan-app`へService Bindingを設定する
 - [ ] 管理者だけ新finance toolを有効にする
@@ -330,7 +330,7 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 
 ## 15. 次に行うこと
 
-フェーズ3のローカル統合とWrangler OAuth認証確認は完了した。ユーザー承認によりfinance Worker用D1/KVを作成し、設定へIDを反映したうえで、リモートD1へ`schema.sql`と架空の`demo-data.sql`を適用済みである。6つのアプリ用テーブルには架空デモデータが入り、GitHub OAuth App、Secrets、callback URL、Workerデプロイ、実データ投入は未実施である。`gh` CLI未導入のため実装用GitHub Issue作成も保留している。次はGitHub OAuth AppとSecretsを準備し、finance WorkerをデプロイしてMCP Inspectorまたは実クライアントの認証接続を確認する。その後、手動CSVまたは固定したupstream SQLiteからのフェーズ4同期exporterへ進む。同期元ホストとMoney Forward MEのWeb自動操作リスクは、実データ同期前に別途確定する。
+フェーズ3のローカル統合とCloudflare外部設定は完了した。finance Worker用D1/KVを作成し、リモートD1へ`schema.sql`と架空の`demo-data.sql`を適用済みである。GitHub OAuth App、Secrets、許可login、callback URLを設定し、finance Workerを本番デプロイ済みである。次はOAuthの実ブラウザ／MCP Inspector接続を確認し、root Workerの`FINANCE_TOOL_ENABLED=true`切り替え後に代表質問を検証する。その後、手動CSVまたは固定したupstream SQLiteからのフェーズ4同期exporterへ進む。同期元ホストとMoney Forward MEのWeb自動操作リスクは、実データ同期前に別途確定する。
 
 ### 外部設定確認の実績（2026-09-11）
 
@@ -340,4 +340,4 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 - 発行されたIDを`workers/finance-mcp/wrangler.toml`へ反映し、finance Worker dry-runでD1/KVバインディングを確認した。
 - `npx wrangler d1 execute fukuchan-finance --remote --file workers/finance-mcp/schema.sql`：11クエリ成功、6つのアプリ用テーブルを作成した。
 - 架空`demo-data.sql`をリモート投入し、`sync_runs` 1件、`daily_summaries` 22件、`monthly_summaries` 2件、`category_daily_totals` 22件、`category_totals` 4件、`asset_summaries` 3件を確認した。
-- Secrets登録、実データ投入、Workerデプロイは未実施。
+- Secrets登録とWorkerデプロイは2026-09-12に実施済み。実データ投入は未実施。

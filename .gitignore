@@ -12,6 +12,7 @@ finance.csv
 # Cloudflare Workers / ローカル開発用シークレット
 /.dev.vars
 /workers/finance-mcp/.dev.vars
+/workers/finance-mcp/.dev.vars.save
 node_modules/
 .wrangler/
 

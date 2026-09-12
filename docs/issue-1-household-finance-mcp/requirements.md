@@ -2,7 +2,7 @@
 
 関連Issue: [fukurose-jun02/fukuchan-knowledge#1](https://github.com/fukurose-jun02/fukuchan-knowledge/issues/1)「家計簿をMCP化する」  
 作成日: 2026-09-11  
-状態: In progress（フェーズ1〜3のローカル実装完了、Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入済み、実データ・Secrets・本番デプロイ・実クライアント接続待ち）
+状態: In progress（フェーズ1〜3の実装完了、Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ済み、実データ・root Worker有効化・実クライアント接続待ち）
 
 ## 1. 実現可能性
 

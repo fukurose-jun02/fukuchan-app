@@ -2,7 +2,7 @@
 
 対応要件: [requirements.md](requirements.md)  
 作成日: 2026-09-11  
-状態: In progress（フェーズ1〜3のローカル実装完了、Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入済み、実データ・Secrets・本番デプロイ・実クライアント接続待ち）
+状態: In progress（フェーズ1〜3の実装完了、Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ済み、実データ・root Worker有効化・実クライアント接続待ち）
 
 ## 1. 設計結論
 
@@ -56,7 +56,7 @@ Money Forwardが公式公開しているAPI・MCPの中心はMoney Forward ク�
 - Wrangler OAuthで対象Cloudflareアカウントへのログインを確認した。
 - ユーザー承認後、`fukuchan-finance`用の本番D1と`OAUTH_KV` namespaceを作成した。D1には架空のデモスナップショット1件を投入済みで、KVは空の状態である。
 - 発行されたD1/KV IDを`workers/finance-mcp/wrangler.toml`へ反映し、finance Workerのdry-runで両バインディングを確認した。
-- `schema.sql`と架空の`demo-data.sql`をリモートD1へ適用済み。6つのアプリ用テーブルにデモデータが入り、実データは未投入である。Secrets登録とデプロイも未実施である。
+- `schema.sql`と架空の`demo-data.sql`をリモートD1へ適用済み。6つのアプリ用テーブルにデモデータが入り、実データは未投入である。OAuth secretsを登録し、finance Workerを本番デプロイ済みである。
 
 ## 4. システム構成
 

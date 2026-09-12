@@ -391,7 +391,7 @@
 - `npm test`：6ファイル、57テストすべて成功。
 - root Worker dry-run：`FINANCE_SERVICE`（`FinanceMcpApi` entrypoint）と機能フラグfalseを確認。
 - finance Worker dry-run：リモートD1とKVバインディングを確認。
-- GitHub OAuth App、Secrets、本番Workerデプロイ、`FINANCE_TOOL_ENABLED=true`への切り替えは未実施。
+- GitHub OAuth App、finance WorkerのSecrets、本番デプロイは完了。`FINANCE_TOOL_ENABLED=true`への切り替えと実クライアント接続は未実施。
 
 ## OAuth設定準備計画（2026-09-12）
 
@@ -400,20 +400,20 @@
 - [x] finance Worker専用`.dev.vars`をgitignoreへ追加し、Secrets投入手順を分離する
 - [x] finance Workerのデプロイ履歴を読み取り確認する（未デプロイを確認）
 - [x] finance Worker用`.dev.vars`の存在を値非表示で確認する（3項目設定済み、権限600へ変更済み）
-- [ ] GitHub OAuth Appを作成する（ユーザー操作）
-- [ ] `GITHUB_ALLOWED_LOGIN`とcallback URLをWrangler varsへ設定する
-- [ ] `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`をWorkers Secretsへ登録する（値は会話へ貼らない）
-- [ ] finance Workerをdry-run後に本番デプロイする
+- [x] GitHub OAuth Appを作成する（ユーザー操作）
+- [x] `GITHUB_ALLOWED_LOGIN`とcallback URLをWrangler varsへ設定する
+- [x] `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`をWorkers Secretsへ登録する（値は会話へ貼らない）
+- [x] finance Workerをdry-run後に本番デプロイする
 - [ ] MCP Inspectorまたは実クライアントでOAuth接続と5ツールを確認する
 
 ### 設定メモ
 
-- Worker名は`fukuchan-finance-mcp`。既存のroot Worker URLから推定したcallback URL候補は`https://fukuchan-finance-mcp.fukuchan-app.workers.dev/github/callback`。デプロイ後に実URLを確認してGitHub OAuth Appと完全一致させる。
+- Worker名は`fukuchan-finance-mcp`。デプロイ後に確認したcallback URLは`https://fukuchan-finance-mcp.fukuchan-app.workers.dev/github/callback`で、GitHub OAuth Appの登録値と一致させている。
 - 実装がGitHubへ要求するOAuth scopeは`read:user`のみ。許可loginは推測で設定せず、ユーザーが指定したGitHub loginを使う。
 
 ## 本日の作業ログ（2026-09-12）
 
-状態: ユーザー指示により本日はここで中断。次回はOAuth設定から再開する。
+状態: finance WorkerのOAuth設定・本番デプロイ・smoke testまで完了。次回は実OAuthクライアント接続から再開する。
 
 ### 今日完了したこと
 
@@ -424,8 +424,7 @@
 
 ### 次回に残っていること
 
-- GitHub OAuth AppのClient ID/Secret、許可login、callback URLを確定する。
-- Cloudflare Secretsを登録し、finance Workerをデプロイする。
 - MCP Inspectorまたは実クライアントでOAuth接続と5ツールの実応答を確認する。
+- root Workerを`FINANCE_TOOL_ENABLED=true`で再デプロイし、代表質問の新旧比較を行う。
 - 検証後に必要なら`FINANCE_TOOL_ENABLED=true`へ切り替え、手動CSVまたは固定upstream SQLiteの同期exporterへ進む。
 - GitHubへのpush／Pull Request作成は、ユーザー確認後に行う。

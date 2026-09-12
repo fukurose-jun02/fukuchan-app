@@ -61,7 +61,7 @@ fukuchan-app/
 │       └── fuku-icon.png   # ふくちゃんのアイコン画像
 ├── src/
 │   └── index.js           # バックエンドAPI（/auth・/chat・/health）
-├── workers/finance-mcp/    # Issue #1：家計MCP（フェーズ1〜3実装、架空デモD1反映済み・未デプロイ）
+├── workers/finance-mcp/    # Issue #1：家計MCP（フェーズ1〜3実装、架空デモD1・本番Worker反映済み）
 │   ├── src/index.js        # OAuth Provider + Worker entrypoint
 │   ├── src/mcp.js          # Streamable HTTP・5つの読み取りツール
 │   ├── src/contracts.js    # MCP・RPC・Geminiで共有する入力契約
@@ -100,7 +100,7 @@ fukuchan-app/
 - 公開ツール：`get_data_freshness`、`get_monthly_summary`、`get_category_breakdown`、`compare_months`、`get_asset_summary`
 - データ：D1の集計値のみ。取引摘要、口座番号、認証情報、任意SQLは扱わない。
 - ふくちゃん統合：`FINANCE_TOOL_ENABLED=true`かつ`FINANCE_SERVICE`が設定された場合だけ、Geminiが5つの家計functionを選択し、Service Binding RPCで実行する。旧`finance.csv`は同時にGeminiへ渡さない。
-- 現在は契約テストと架空デモD1まで。finance Workerの本番OAuth secrets、実クライアント接続、本番有効化、実データ同期は未実施。
+- finance WorkerのOAuth secrets設定と本番デプロイは完了。実クライアント接続、root Workerの`FINANCE_TOOL_ENABLED=true`切り替え、本番有効化、実データ同期は未実施。
 
 ローカル契約テストは`npm test -- --run workers/finance-mcp/src/mcp.test.js workers/finance-mcp/src/oauth.test.js`で実行する。本番へ接続するには、Wranglerの`OAUTH_KV`、D1 ID、`GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`、許可login、GitHub OAuth callback URLを環境ごとに設定する。値はリポジトリへ保存しない。
 

@@ -3,10 +3,12 @@ main = "src/index.js"
 compatibility_date = "2026-09-05"
 
 [vars]
-# 本番では実際に許可するGitHub loginへ置き換える。複数はカンマ区切り。
-GITHUB_ALLOWED_LOGIN = "replace-with-github-login"
+# GitHub OAuthでログインを許可するユーザー。複数はカンマ区切り。
+GITHUB_ALLOWED_LOGIN = "fukurose-jun02"
+# GitHub OAuth Appへ登録したcallback URL（本番WorkerのURLと完全一致させる）。
+GITHUB_OAUTH_CALLBACK_URL = "https://fukuchan-finance-mcp.fukuchan-app.workers.dev/github/callback"
 # 任意。ブラウザ型MCPクライアントのOriginをカンマ区切りで許可する。
-# GITHUB_OAUTH_CALLBACK_URLとMCP_ALLOWED_ORIGINSは本番環境のvarsで設定する。
+# MCP_ALLOWED_ORIGINSは必要になった時点で本番環境のvarsへ追加する。
 
 # Cloudflare上に作成した家計集計用のリモートD1。
 [[d1_databases]]

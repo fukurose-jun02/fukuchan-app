@@ -1,6 +1,6 @@
 # fukuchan-finance-mcp
 
-家計の集計値だけを提供するRemote MCP Workerです。フェーズ1〜3の実装（D1 query、Remote MCP、GitHub OAuth、Service Binding RPC）と、リモートD1への架空デモデータ投入が完了しています。本番OAuth・実データ同期・Workerデプロイには未接続です。
+家計の集計値だけを提供するRemote MCP Workerです。フェーズ1〜3の実装（D1 query、Remote MCP、GitHub OAuth、Service Binding RPC）、リモートD1への架空デモデータ投入、本番OAuth secrets設定、Workerデプロイが完了しています。実データ同期、実クライアント接続、Service Bindingの本番有効化は未実施です。
 
 ## 公開面
 
@@ -48,8 +48,8 @@ GITHUB_OAUTH_CALLBACK_URL=http://localhost:8787/github/callback
 
 1. D1/KVは作成済みで、`wrangler.toml`へ実IDを設定済みである。
 2. `GITHUB_ALLOWED_LOGIN`、`GITHUB_OAUTH_CALLBACK_URL`、必要な`MCP_ALLOWED_ORIGINS`、本番URLをWrangler varsへ設定する。
-3. `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`をWorkers Secretsへ投入する。
+3. `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`をWorkers Secretsへ投入済み（2026-09-12）。
 4. `schema.sql`と架空`demo-data.sql`は適用済み。実データ同期時はexporterが検証した集計SQLだけを投入する。
-5. `npx wrangler deploy --config workers/finance-mcp/wrangler.toml --dry-run`後に本番デプロイする。
+5. `npx wrangler deploy --config workers/finance-mcp/wrangler.toml --dry-run`後に本番デプロイ済み（2026-09-12）。
 
 本番のD1/KV ID、OAuth secret、金融データはこのリポジトリへ書きません。初回デプロイ時は`npx wrangler deploy --config workers/finance-mcp/wrangler.toml --secrets-file workers/finance-mcp/.dev.vars`を使用し、秘密値を会話やログへ貼り付けないでください。実データ同期、実クライアント接続、Service Bindingの本番有効化は未実施です。
