@@ -444,5 +444,15 @@
 - MCP InspectorでOAuth接続と5ツールの実応答を確認する（実クライアント接続は別途、確認済み）。
 - デモfixtureの月次・日次集計差分（9月10,000円）を原因特定し、整合性を取る（修正・リモート検証済み）。
 - root Workerを`FINANCE_TOOL_ENABLED=true`で再デプロイし、代表質問の新旧比較を行う（デモデータによる本番確認まで完了。実データでの確認は未実施）。
-- 検証後、手動CSVまたは固定upstream SQLiteの同期exporterへ進む。
+- 次回は手動CSVを介さないCloudflare Browser Run＋Cron Trigger方式の自動同期PoCへ進む。
 - GitHubへのpush／Pull Request作成は、ユーザー確認後に行う。
+
+## 手動CSVなしの自動同期方針検討（2026-09-12）
+
+- [x] Macのスリープ中も動かせる同期方式が必要だと確認する
+- [x] 手動CSVを前提にせず、Cloudflare定期同期を第一候補として整理する
+- [x] 同期専用Worker、Cron Trigger、Browser Run / Playwright、D1 staging/activeの構成案を作る
+- [ ] Browser RunでMoney Forwardのログイン・読み取りPoCを実施する
+- [ ] Cloudflare SecretsへMoney Forward認証情報を保存する方針を最終承認する
+- [ ] OTP・Bot対策・失敗時のstale運用を確定する
+- [ ] 1時間ごとのCron同期を実装し、実データのGo/No-Goを判断する
