@@ -464,6 +464,7 @@
 - [x] 実データを使わないPoC範囲、Go/No-Go条件、承認ゲートを明文化する
 - [x] Browser Runの非機密起動PoCを実行する
 - [x] Browser Runで認証情報なしにMoney Forwardログイン画面へ到達できることを確認する
+- [x] 未認証ログイン画面のフォーム構造とCAPTCHA/OTP表示の有無を確認する
 - [x] Cron Triggerの`scheduled()`架空fixture呼び出しを確認するためのローカルPoCを作成する
 - [x] ローカルPoCを`wrangler dev --test-scheduled`で実行確認する
 - [x] Cloudflare公式仕様のBrowser Run費用・制限・Bot対策・セッション保持を確認する
@@ -480,4 +481,5 @@
 - `workers/finance-sync/poc/`を追加し、Cron fixtureのテスト（2件）、dry-run、ローカル`/health`と`/__scheduled`呼び出しに成功した。
 - Cron fixtureの応答は`Ran scheduled event`、Workerのhealthは`{"status":"ok","mode":"cron-fixture"}`だった。
 - Cloudflare公式仕様で、Free/ Paidの利用枠、セッションのアイドル終了、Bot識別、料金の扱いを確認した。Money Forward側での実際のBot対策・OTP・セッション継続可否は未確認である。
-- 次はMoney Forward側のBot対策・OTP・セッション継続可否の確認だが、認証情報のCloudflare保管と実データ入力にはユーザー承認が必要である。
+- 未認証ログイン画面でメール欄・パスワード欄を確認し、CAPTCHA/OTPの表示は検出されなかった。これはログイン後の挙動を保証しない。
+- 次はMoney Forward側のログイン後のBot対策・OTP・セッション継続可否の確認だが、認証情報のCloudflare保管と実データ入力にはユーザー承認が必要である。

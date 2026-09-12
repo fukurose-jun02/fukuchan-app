@@ -142,10 +142,11 @@ No-Goの場合は、認証情報をローカルに限定するOption Aまたは�
 1. [x] Browser Runの非機密起動PoCを実行する。
 2. [x] Cron Triggerの`scheduled()`を架空fixtureで実行する。
 3. [x] 認証情報なしでMoney Forwardログイン画面へ到達できることを確認する。
-4. [x] Cloudflare公式仕様のBrowser Run費用・制限・Bot対策・セッション保持を確認する。
-5. [ ] Money Forward側でBrowser RunのBot対策・OTP・セッション継続可否を確認する。
-6. [ ] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管をユーザーが承認するか決める。
-7. [ ] Go判定後にのみ、`workers/finance-sync`の実装と実データ検証へ進む。
+4. [x] 未認証ログイン画面のフォーム構造とCAPTCHA/OTP表示の有無を確認する。
+5. [x] Cloudflare公式仕様のBrowser Run費用・制限・Bot対策・セッション保持を確認する。
+6. [ ] Money Forward側でBrowser RunのBot対策・OTP・セッション継続可否を確認する。
+7. [ ] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管をユーザーが承認するか決める。
+8. [ ] Go判定後にのみ、`workers/finance-sync`の実装と実データ検証へ進む。
 
 ## Cloudflare公式仕様の確認結果（2026-09-12）
 
