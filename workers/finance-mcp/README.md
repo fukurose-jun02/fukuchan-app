@@ -31,7 +31,7 @@ npx wrangler d1 execute fukuchan-finance --config workers/finance-mcp/wrangler.t
 npx wrangler dev --config workers/finance-mcp/wrangler.toml --local
 ```
 
-GitHub OAuthの実ログインを行うには、`.dev.vars`等へ次の値を設定します。値はgitへ保存しません。
+GitHub OAuthの実ログインを行うには、gitignore済みの`workers/finance-mcp/.dev.vars`へ次の値を設定します。値はgitへ保存しません。
 
 ```text
 GITHUB_CLIENT_ID=<GitHub OAuth App client ID>
@@ -52,4 +52,4 @@ GITHUB_OAUTH_CALLBACK_URL=http://localhost:8787/github/callback
 4. `schema.sql`と架空`demo-data.sql`は適用済み。実データ同期時はexporterが検証した集計SQLだけを投入する。
 5. `npx wrangler deploy --config workers/finance-mcp/wrangler.toml --dry-run`後に本番デプロイする。
 
-本番のD1/KV ID、OAuth secret、金融データはこのリポジトリへ書きません。実データ同期、実クライアント接続、Service Bindingの本番有効化は未実施です。
+本番のD1/KV ID、OAuth secret、金融データはこのリポジトリへ書きません。初回デプロイ時は`npx wrangler deploy --config workers/finance-mcp/wrangler.toml --secrets-file workers/finance-mcp/.dev.vars`を使用し、秘密値を会話やログへ貼り付けないでください。実データ同期、実クライアント接続、Service Bindingの本番有効化は未実施です。

@@ -397,6 +397,7 @@
 
 - [x] 実装・設定・作業ログの状態をCloudflare上のD1/KV・デモデータと照合する
 - [x] GitHub OAuthで必要な入力（Client ID/Secret、許可login、callback URL）を整理する
+- [x] finance Worker専用`.dev.vars`をgitignoreへ追加し、Secrets投入手順を分離する
 - [ ] GitHub OAuth Appを作成する（ユーザー操作）
 - [ ] `GITHUB_ALLOWED_LOGIN`とcallback URLをWrangler varsへ設定する
 - [ ] `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`COOKIE_ENCRYPTION_KEY`をWorkers Secretsへ登録する（値は会話へ貼らない）
