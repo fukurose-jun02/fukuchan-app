@@ -423,12 +423,15 @@
 - GitHub OAuth Appの設定、許可login、callback URL、finance Worker Secretsを設定し、finance Workerを本番デプロイした。
 - 本番smoke testで`/health`=200、未認証`POST /mcp`=401、OAuthパラメータなし`/authorize`=400を確認した。Dynamic Client Registrationの疎通確認後、一時テストクライアントは削除した。
 - MCP Inspectorの初回OAuthでscope省略時の`invalid_scope`、再認証時の`Invalid authorization code format`を確認した。scope既定付与と、認可コードの区切り文字と衝突しないuserId形式を実装して再デプロイした。OAuthテスト9件が成功した。
+- MCP InspectorでOAuth接続後、`get_monthly_summary`、`get_category_breakdown`、`compare_months`の実応答を確認した。食費は同期間で33,000円から55,000円へ22,000円（66.7%）増加した。
+- デモfixtureの月次9月支出138,000円と日次同期間合計148,000円に10,000円の差を検出した。実データ投入前に月次・日次集計の整合性を確認する。
 - 変更後の`npm test`（57件）と`git diff --check`が成功した。
 - 作業ログをコミットし、作業ツリーをクリーンにした。
 
 ### 次回に残っていること
 
 - MCP Inspectorまたは実クライアントでOAuth接続と5ツールの実応答を確認する。
+- デモfixtureの月次・日次集計差分（9月10,000円）を原因特定し、整合性を取る。
 - root Workerを`FINANCE_TOOL_ENABLED=true`で再デプロイし、代表質問の新旧比較を行う。
 - 検証後、手動CSVまたは固定upstream SQLiteの同期exporterへ進む。
 - GitHubへのpush／Pull Request作成は、ユーザー確認後に行う。
