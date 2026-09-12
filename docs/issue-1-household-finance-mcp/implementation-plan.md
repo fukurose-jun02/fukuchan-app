@@ -379,4 +379,4 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 - `MF_LOGIN_EMAIL`と`MF_LOGIN_PASSWORD`はWorker Secretsからだけ参照し、レスポンス・ログへ値を出さない。
 - 結果は`AUTHENTICATED`、`AUTH_FAILED`、`OTP_REQUIRED`、`BOT_BLOCKED`、`BROWSER_ERROR`、`UNEXPECTED_STATE`の粗い分類とorigin/pathだけを返す。Cookie、画面本文、取引明細、スクリーンショット、Storage Stateは保存しない。
 - `finally`でBrowser Runを閉じる。PoC専用Workerには本番Cronを設定せず、PoC終了後は`POC_ENABLED=false`へ戻して手動起動口を無効化する。
-- Wrangler dry-run後、ユーザーがローカルの無視対象Secretsファイルへ値を入力し、`--secrets-file`でPoC専用Workerを一時有効化してデプロイした。`/health` 200と未認証401を確認した後、認証済みの実ログイン試行はHTTP 400（本文なし）で判定未到達だったため、追加試行を行わず`POC_ENABLED=false`で再デプロイした。
+- Wrangler dry-run後、ユーザーがローカルの無視対象Secretsファイルへ値を入力し、`--secrets-file`でPoC専用Workerを一時有効化してデプロイした。`/health` 200と未認証401を確認した後、認証済みの実ログイン試行はHTTP 400（本文なし）で判定未到達だった。ユーザーの再試行承認後に安全なtailを併用して1回だけ再試行したが同じHTTP 400であり、追加試行を行わず`POC_ENABLED=false`で再デプロイした。
