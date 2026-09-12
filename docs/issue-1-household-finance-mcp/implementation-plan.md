@@ -330,7 +330,7 @@ finance Workerのデプロイが失敗した場合、`fukuchan-app`のデプロ�
 
 ## 15. 次に行うこと
 
-フェーズ3のローカル統合とCloudflare外部設定は完了した。finance Worker用D1/KVを作成し、リモートD1へ`schema.sql`と架空の`demo-data.sql`を適用済みである。GitHub OAuth App、Secrets、許可login、callback URLを設定し、finance Workerを本番デプロイ済みである。MCP InspectorでOAuth接続と5ツールの実応答を確認し、root Workerも`FINANCE_TOOL_ENABLED=true`で本番デプロイした。最終合成ターンではfunctionResponseを唯一の根拠とする指示を追加し、架空デモ値で自然文回答を再現確認した。さらに本番Workerで日付履歴付きの代表質問を実行し、食費55,000円・先月33,000円・差額+22,000円、鮮度stale、基準日時の反映を確認した。その後、手動CSVまたは固定したupstream SQLiteからのフェーズ4同期exporterへ進む。同期元ホストとMoney Forward MEのWeb自動操作リスクは、実データ同期前に別途確定する。
+フェーズ3のローカル統合とCloudflare外部設定は完了した。finance Worker用D1/KVを作成し、リモートD1へ`schema.sql`と架空の`demo-data.sql`を適用済みである。GitHub OAuth App、Secrets、許可login、callback URLを設定し、finance Workerを本番デプロイ済みである。MCP InspectorでOAuth接続と5ツールの実応答を確認し、root Workerも`FINANCE_TOOL_ENABLED=true`で本番デプロイした。最終合成ターンではfunctionResponseを唯一の根拠とする指示を追加し、架空デモ値で自然文回答を再現確認した。さらに本番Workerで日付履歴付きの代表質問を実行し、食費55,000円・先月33,000円・差額+22,000円、鮮度stale、基準日時の反映を確認した。手動CSVなしの自動同期については、[ADR-002](adr-002-automatic-sync.md)を提案状態で追加した。次は実データを使わないBrowser Run起動PoCとCronの架空fixture確認を行い、認証情報をCloudflareへ保管するかの承認後に、実データ同期へ進む。
 
 ### 外部設定確認の実績（2026-09-11）
 

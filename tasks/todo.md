@@ -456,3 +456,20 @@
 - [ ] Cloudflare SecretsへMoney Forward認証情報を保存する方針を最終承認する
 - [ ] OTP・Bot対策・失敗時のstale運用を確定する
 - [ ] 1時間ごとのCron同期を実装し、実データのGo/No-Goを判断する
+
+## 自動同期PoC再開計画（2026-09-12）
+
+- [x] 前回ログ・要件定義書・設計書・実装計画書と現行コードの状態を再確認する
+- [x] Cloudflare自動同期案をADR-002（Proposed）として文書化する
+- [x] 実データを使わないPoC範囲、Go/No-Go条件、承認ゲートを明文化する
+- [ ] Browser Runの非機密起動PoCを実行する
+- [ ] Cron Triggerの`scheduled()`架空fixture呼び出しを確認する
+- [ ] Browser Runの費用・制限・Bot対策・セッション保持を確認する
+- [ ] Cloudflare Secrets / Secrets StoreへのMoney Forward認証情報保管についてユーザー承認を得る
+- [ ] 承認後にのみ`workers/finance-sync`を実装し、実データ同期のGo/No-Goを判断する
+
+### Review（2026-09-12）
+
+- `docs/issue-1-household-finance-mcp/adr-002-automatic-sync.md`を追加した。
+- ADR-002は提案状態であり、既存の「認証情報はローカルのみ」の要件や設計の採用判断を変更していない。
+- 次の実作業は、実データを入力しないBrowser Run起動PoCとCronの架空fixture確認である。

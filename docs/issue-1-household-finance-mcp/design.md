@@ -2,7 +2,7 @@
 
 対応要件: [requirements.md](requirements.md)  
 作成日: 2026-09-11  
-状態: In progress（フェーズ1〜3の実装完了、Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ・MCP Inspector 5ツール確認・root Worker finance有効化・本番デモ自然文確認済み、実データ・実クライアント接続待ち）
+状態: In progress（フェーズ1〜3の実装完了、Cloudflare認証・D1/KV作成・スキーマ適用・架空デモデータ投入・OAuth secrets設定・finance Workerデプロイ・MCP Inspector 5ツール確認・root Worker finance有効化・本番デモ自然文確認済み、実データ・実クライアント接続待ち。手動CSVなしの自動同期はADR-002で提案中）
 
 ## 1. 設計結論
 
@@ -14,6 +14,8 @@ Money Forward MEの取得処理と、AIからの照会処理を分離する。
 - **アプリ連携**：既存`fukuchan-app`は、公開URLではなくCloudflare Service Bindingでfinance Workerの内部RPCを呼び、Geminiへは集計結果だけを渡す。
 
 この構成なら、Money Forward MEのログイン情報をCloudflareやAIへ渡さず、外部MCPとふくちゃんトークの両方で同じ集計ロジックを利用できる。
+
+手動CSVなしでMacのスリープに依存しない同期は、[ADR-002：手動CSVなしの家計データ自動同期](adr-002-automatic-sync.md)で別途提案している。ADRがAcceptedになるまで、本設計の採用構成（ローカル取得 + D1 + Remote MCP）と、Money Forward認証情報をローカルに限定する要件を変更しない。
 
 ## 2. 調査結果
 
