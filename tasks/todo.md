@@ -417,7 +417,7 @@
 - [x] 架空データの対象月だけをリモートD1で更新し、月次・日次・カテゴリ集計を再検証する
 - [x] root Workerの`FINANCE_TOOL_ENABLED=true`をdry-runで確認する
 - [x] root Workerを本番デプロイし、既存の認証・health・Service Bindingを確認する
-- [ ] ふくちゃんの自然文質問でfinance function callingを確認する
+- [x] ふくちゃんの自然文質問でfinance function callingを確認する（デモデータ・本番Worker）
 
 ## 本日の作業ログ（2026-09-12）
 
@@ -437,12 +437,12 @@
 - 最終合成ターンでfunctionResponseを唯一の根拠とするGemini指示を追加し、finance統合テストにその指示とモデルroleの検証を加えた。
 - 修正後の`npm test`（59件）、root Worker dry-run、root Worker本番デプロイ、`/health`=200・`/auth`=200を確認した。
 - 日付履歴を含む架空デモ値のGemini往復再現で、食費55,000円・先月33,000円・差額22,000円を正しく回答できることを確認した。
-- 本番の金融自然文再試行は、明示的な送信許可がないため実施していない。
+- 本番Workerで日付履歴付きの代表質問を1回実行し、`/auth`=200、`/chat`=200、食費55,000円（先月33,000円、差額+22,000円）と鮮度・基準日時の反映を確認した。送信対象はリモートD1の架空デモ集計値のみである。
 
 ### 次回に残っていること
 
 - MCP InspectorでOAuth接続と5ツールの実応答を確認する（実クライアント接続は別途、確認済み）。
 - デモfixtureの月次・日次集計差分（9月10,000円）を原因特定し、整合性を取る（修正・リモート検証済み）。
-- root Workerを`FINANCE_TOOL_ENABLED=true`で再デプロイし、代表質問の新旧比較を行う（デプロイ済み。金融自然文の本番再試行は送信許可待ち）。
+- root Workerを`FINANCE_TOOL_ENABLED=true`で再デプロイし、代表質問の新旧比較を行う（デモデータによる本番確認まで完了。実データでの確認は未実施）。
 - 検証後、手動CSVまたは固定upstream SQLiteの同期exporterへ進む。
 - GitHubへのpush／Pull Request作成は、ユーザー確認後に行う。
