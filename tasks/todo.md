@@ -374,7 +374,7 @@
 
 - 投入元は`codex/issue-2-cloudflare-cicd`の`bb64747`に含まれる架空fixtureで、実在の家計情報は含まれない。
 - 投入結果：`sync_runs` 1件、`daily_summaries` 22件、`monthly_summaries` 2件、`category_daily_totals` 22件、`category_totals` 4件、`asset_summaries` 3件。
-- 月次集計は2026-08が収入300,000円・支出109,000円、2026-09が収入300,000円・支出138,000円として確認した。
+- 月次集計は2026-08が収入300,000円・支出109,000円、2026-09が収入300,000円・支出148,000円として確認した（日次合計と一致）。
 - 資産集計は預金1,000,000円、投資信託500,000円、負債-200,000円として確認した。
 - D1スキーマ・デモデータはCloudflare上に反映済み。Secrets、GitHub OAuth App、Workerデプロイ、`FINANCE_TOOL_ENABLED=true`への切り替えは未実施。
 - MCP実装一式は`codex/issue-2-cloudflare-cicd`の`bb64747`から`main`へfast-forward統合済みである。
@@ -411,6 +411,14 @@
 - Worker名は`fukuchan-finance-mcp`。デプロイ後に確認したcallback URLは`https://fukuchan-finance-mcp.fukuchan-app.workers.dev/github/callback`で、GitHub OAuth Appの登録値と一致させている。
 - 実装がGitHubへ要求するOAuth scopeは`read:user`のみ。許可loginは推測で設定せず、ユーザーが指定したGitHub loginを使う。
 
+## デモfixture整合性修正とroot有効化計画（2026-09-12）
+
+- [x] `demo-data.sql`の月次・日次合計を読み取り比較し、修正値を確定する
+- [x] 架空データの対象月だけをリモートD1で更新し、月次・日次・カテゴリ集計を再検証する
+- [ ] root Workerの`FINANCE_TOOL_ENABLED=true`をdry-runで確認する
+- [ ] root Workerを本番デプロイし、既存の認証・health・Service Bindingを確認する
+- [ ] ふくちゃんの自然文質問でfinance function callingを確認する
+
 ## 本日の作業ログ（2026-09-12）
 
 状態: finance WorkerのOAuth設定・本番デプロイ・smoke testまで完了。次回は実OAuthクライアント接続から再開する。
@@ -425,14 +433,14 @@
 - MCP Inspectorの初回OAuthでscope省略時の`invalid_scope`、再認証時の`Invalid authorization code format`を確認した。scope既定付与と、認可コードの区切り文字と衝突しないuserId形式を実装して再デプロイした。OAuthテスト9件が成功した。
 - MCP InspectorでOAuth接続後、`get_monthly_summary`、`get_category_breakdown`、`compare_months`の実応答を確認した。食費は同期間で33,000円から55,000円へ22,000円（66.7%）増加した。
 - MCP Inspectorで`get_data_freshness`、`get_monthly_summary`、`get_category_breakdown`、`compare_months`、`get_asset_summary`の5ツールすべての実応答を確認した。資産は総資産1,500,000円、負債200,000円、純資産1,300,000円だった。
-- デモfixtureの月次9月支出138,000円と日次同期間合計148,000円に10,000円の差を検出した。実データ投入前に月次・日次集計の整合性を確認する。
+- デモfixtureの月次9月支出を148,000円（収支152,000円）へ修正し、リモートD1で月次・日次合計が一致することを再検証した。
 - 変更後の`npm test`（57件）と`git diff --check`が成功した。
 - 作業ログをコミットし、作業ツリーをクリーンにした。
 
 ### 次回に残っていること
 
-- MCP Inspectorまたは実クライアントでOAuth接続と5ツールの実応答を確認する。
-- デモfixtureの月次・日次集計差分（9月10,000円）を原因特定し、整合性を取る。
+- MCP InspectorでOAuth接続と5ツールの実応答を確認する（実クライアント接続は別途）。
+- デモfixtureの月次・日次集計差分（9月10,000円）を原因特定し、整合性を取る（修正・リモート検証済み）。
 - root Workerを`FINANCE_TOOL_ENABLED=true`で再デプロイし、代表質問の新旧比較を行う。
 - 検証後、手動CSVまたは固定upstream SQLiteの同期exporterへ進む。
 - GitHubへのpush／Pull Request作成は、ユーザー確認後に行う。

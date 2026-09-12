@@ -36,7 +36,7 @@ INSERT INTO daily_summaries (sync_id, date, income_yen, expense_yen, balance_yen
 
 INSERT INTO monthly_summaries (sync_id, month, income_yen, expense_yen, balance_yen, transaction_count) VALUES
   ('demo-2026-09-11', '2026-08', 300000, 109000, 191000, 22),
-  ('demo-2026-09-11', '2026-09', 300000, 138000, 162000, 23);
+  ('demo-2026-09-11', '2026-09', 300000, 148000, 152000, 23);
 
 INSERT INTO category_daily_totals (sync_id, date, direction, category, amount_yen, transaction_count) VALUES
   ('demo-2026-09-11', '2026-08-01', 'expense', '食費', 4000, 1),
