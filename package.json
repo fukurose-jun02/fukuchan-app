@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "finance:import-csv": "node tools/finance-sync/import-csv.mjs",
     "test": "vitest run"
   },
   "devDependencies": {
