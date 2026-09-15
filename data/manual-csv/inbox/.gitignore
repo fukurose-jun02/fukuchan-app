@@ -1,0 +1,5 @@
+# This folder is a local dropbox for the user's real Money Forward CSV.
+# Never commit CSV, SQL, or other generated files from here.
+*
+!.gitignore
+!README.md

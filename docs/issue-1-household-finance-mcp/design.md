@@ -117,6 +117,10 @@ Money Forwardが公式公開しているAPI・MCPの中心はMoney Forward ク�
 6. D1へ投入し、全処理成功後にその`sync_id`をactiveへ切り替える。
 7. 一時SQLを削除する。SQLや標準出力へ金融明細を出さない。
 
+自動同期が利用できるまでのOption 2として、`workers/finance-sync/src/csv-importer.js`が月次CSVまたはMoney Forwardの「収入・支出詳細」CSVを`monthly_only`スナップショットへ変換する。月次CSVは`年月・カテゴリ・金額・メモ`、詳細CSVは`日付・金額・大項目`を使い、任意の`方向`にも対応する。詳細CSVの符号から収入・支出を判定し、振替・対象外行を除外する。`メモ`、内容、金融機関、IDなどの余分な列はパーサーが読み飛ばし、スナップショットと生成SQLには含めない。`tools/finance-sync/import-csv.mjs`はUTF-8とShift_JISを自動判定し、ローカルファイルを読み、件数だけを標準出力へ出し、一時SQLを明示された出力先へ生成する。WranglerのD1 SQL実行では明示的な`BEGIN/COMMIT`が拒否されるため、実行前にSQLを検証し、新syncのactive化を旧activeのsuperseded化より先に行う。
+
+`monthly_only`では日次・日次カテゴリ行を作らず、月次とカテゴリの合計一致だけを検証する。D1の`compare_months`は日次行がない場合に`unsupported_granularity`で停止するため、月次全期間を同期間比較へ誤用しない。実CSVはこの作業ツリーへ保存せず、合成fixtureでCLIとlocal D1への投入を検証する。remote D1への実CSV投入は別途承認まで行わない。
+
 ローカル実行の概念例:
 
 ```text
@@ -204,6 +208,7 @@ CREATE TABLE asset_summaries (
 
 - 新しい同期は`staging`として別`sync_id`へ挿入する。
 - 件数・合計値・期間の検証が通ったら、旧activeを`superseded`、新syncを`active`へ変更する。
+- 旧activeの切り替えと新syncのactive化は、staging行・集計行の投入を含む1回のD1 batchで行う。batch失敗時は全体ロールバックされ、旧activeを維持する。
 - MCPは`status = 'active'`の1件だけを参照する。
 - 同期失敗時は旧activeを維持する。
 - 保持期間はactive + 直前2世代を基本とし、それ以前は定期削除する。

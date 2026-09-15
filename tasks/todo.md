@@ -510,3 +510,33 @@
 - CloudflareダッシュボードObservabilityで`/health`=200と`/poc/login`=401（Worker outcome=`ok`）を確認した。集計は`2 Success / 0 Errors`で、HTTP 400の発生箇所は未確定のままである。Workerは無効状態を維持し、追加のBrowser Run・ログイン試行は行わない。
 - `SYNC_POC_TOKEN`にANSI制御文字が混入していたため、AuthorizationヘッダーがCloudflare端でHTTP 400になっていた。トークンを64文字hexへローテーションした後、公開サイト診断はHTTP 200となり、Browser Run bindingの正常動作を確認した。
 - Money Forwardログイン画面の送信ボタンセレクタを`button#submitto`優先へ修正し、実ログインPoCは`OTP_REQUIRED`（`/email_otp`）まで到達した。診断ルート削除と`POC_ENABLED=false`への復旧、`/health`=200・`/poc/login`=404を確認済みである。
+
+## 次フェーズ：Option 2 手動CSVインポート（2026-09-14）
+
+### 計画
+
+- [x] 月次CSVを`monthly_only`スナップショットへ変換するimporterを実装する
+- [x] `メモ`などの余分な列を出力・ログ・D1へ含めない境界をテストする
+- [x] 月次専用スナップショットをD1 staging/active writerへ接続し、日次行を生成しない
+- [x] 一時SQLを生成するCLIを追加し、入力・出力パスを明示する手順を固定する
+- [x] 合成CSVをlocal D1へ投入し、active状態・月次合計・カテゴリ合計・件数を確認する
+- [x] 実CSVを手動で置くローカルdropboxを作成し、CSV本体をGit管理対象外にする
+- [x] 1ヶ月分のMoney Forward「収入・支出詳細」CSVをShift_JISとしてdry-runし、月次集計へ変換できることを確認する
+- [x] 日次データなしの同期間比較が`unsupported_granularity`で停止する既存契約を確認する
+- [ ] 実CSVの元画面・元CSV合計との突合を確認する
+- [x] ユーザー承認後に1ヶ月分の実CSVをremote D1へ投入する
+- [ ] ふくちゃんと外部MCPの実データ結果を比較する
+- [ ] Browser Run自動同期の再試行・本番Cron有効化は別のGo/No-Goまで行わない
+
+### Review
+
+- `workers/finance-sync/src/csv-importer.js`を追加し、`年月・カテゴリ・金額`を必須、`方向`を任意、`メモ`を破棄するRFC4180系CSVパーサーと月次・カテゴリ集計を実装した。出力は`granularity=monthly_only`、日次件数0、資産件数0とする。
+- `workers/finance-sync/src/d1-sync.js`に月次カテゴリ合計の検証を追加し、月次専用入力では`daily_summaries`と`category_daily_totals`を生成しない。日次を混入させた入力はfail-closedする。
+- `tools/finance-sync/import-csv.mjs`と`npm run finance:import-csv`を追加した。SQLは固定文のプレースホルダをローカルでリテラル化するが、標準出力は状態・粒度・件数・statement数だけで、メモや明細を出さない。
+- 合成fixtureからSQLを生成し、`fukuchan-finance`のlocal D1へ8コマンドを適用した。`manual-csv-smoke-20260914`がactive、daily=0、monthly=2、category=3、asset=0となり、月次・カテゴリ合計が一致した。remote D1と実データは対象外である。
+- 単体テスト22件、全体テスト16ファイル・107件、`git diff --check`を確認した。
+- 2026-09-15に`data/manual-csv/inbox/収入・支出詳細_2026-08-01_2026-08-31.csv`をdry-runし、`monthly_only`・日次0・月次1・カテゴリ18・資産0となった。金額・内容・金融機関・メモ・IDは標準出力へ出していない。
+- 詳細CSVの`計算対象=0`（全角`０`を含む）を除外する条件を追加し、合成fixtureで集計件数に含まれないことを確認した。
+- ユーザーの`OK`後、`manual-csv-20260915-aug`をremote D1へ投入した。active、daily=0、monthly=1、category=18、asset=0、日次テーブル0行、月次カテゴリ合計一致、active 1件を確認した。
+- 初回のSQL実行はD1 CLIが明示的な`BEGIN TRANSACTION`を拒否したため適用されなかった。トランザクション文を外し、active化を旧active切り替えより先にするD1 CLI用SQLへ修正後、22クエリの投入に成功した。一時SQLは削除済みである。
+- CSVの投入先として`data/manual-csv/inbox/`を作成した。実CSVはこのフォルダへ手動保存し、`.gitignore`で除外する。

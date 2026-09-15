@@ -202,11 +202,13 @@ wrangler dev -c <finance-worker-config>
 
 ### 4A. 先に手動CSVで検証
 
-- [ ] 現行`finance.csv`を読み、D1用SQLへ変換するimporterを作成する
-- [ ] ローカルD1へ投入し、元CSVとの合計一致を確認する
-- [ ] 月次CSVでは`full_month`だけを提供し、同期間比較は日次データ不足として安全に拒否する
-- [ ] ユーザー承認後、remote D1へデモまたは手動データを投入する
+- [x] 現行`finance.csv`の契約（年月・カテゴリ・金額・メモ）を読み、D1用SQLへ変換するimporterを作成する
+- [x] 合成CSVをlocal D1へ投入し、月次・カテゴリ合計と件数の一致を確認する
+- [x] 月次CSVを`monthly_only`として扱い、`full_month`を提供し、同期間比較は日次データ不足として安全に拒否する
+- [ ] ユーザー承認後、1ヶ月分の手動データをremote D1へ投入し、active化と整合性を確認する
 - [ ] ふくちゃんと外部MCPの結果が一致することを確認する
+
+実行入口は`npm run finance:import-csv -- --input <csv> --output <temporary-sql> --as-of <iso> --sync-id <id>`である。2026-09-15にローカルdropboxへ置かれた1ヶ月分の「収入・支出詳細」CSVをShift_JISとしてdry-runし、`monthly_only`・日次0・月次1・カテゴリ18・資産0を確認した。その後、承認を受けて`manual-csv-20260915-aug`をremote D1へ投入し、active化、日次0、月次とカテゴリの合計一致、active 1件を読み取り確認した。実行用一時SQLは削除済みである。
 
 ### 4B. `mf-dashboard` SQLite対応
 
