@@ -5,6 +5,7 @@ import {
   executeFinanceToolCall,
   loadAllKnowledge,
   resolveFinanceMode,
+  appendFinanceMetadata,
 } from './index.js';
 import {
   FINANCE_TOOL_DECLARATIONS,
@@ -87,7 +88,7 @@ describe('Gemini finance function-calling loop', () => {
           },
         }]);
       }
-      return geminiResponse([{ text: '今月の食費は先月より9,000円多いよ。' }]);
+      return geminiResponse([{ text: '**食費**は先月より**9,000円**多いよ。' }]);
     };
 
     const reply = await callGeminiWithFinance(
@@ -98,11 +99,13 @@ describe('Gemini finance function-calling loop', () => {
     );
 
     expect(reply).toContain('9,000円');
-    expect(reply).toContain('2026-09-11T06:30:00+09:00');
-    expect(reply).toContain('fresh');
+    expect(reply).toContain('**食費**');
+    expect(reply).not.toContain('2026-09-11T06:30:00+09:00');
+    expect(reply).not.toContain('fresh');
     expect(requests).toHaveLength(2);
     expect(requests[0].tools[0].functionDeclarations).toHaveLength(5);
     expect(requests[1].system_instruction.parts[0].text).toContain('唯一の根拠');
+    expect(requests[1].system_instruction.parts[0].text).toContain('Markdownの太字');
     expect(requests[1].contents[1].role).toBe('model');
     expect(requests[1].contents[1].parts[0].functionCall.name).toBe('compare_months');
     expect(requests[1].contents[2].role).toBe('user');
@@ -111,6 +114,20 @@ describe('Gemini finance function-calling loop', () => {
       name: 'compare_months',
       response: { result: { data: { category: { delta_yen: 9000 } } } },
     });
+  });
+
+  it('fresh時はメタ情報を表示せず、stale時だけ短い警告を付ける', () => {
+    const freshParts = [{ functionResponse: { response: {
+      result: { meta: { asOf: '2026-09-15T06:00:00+09:00', freshness: 'fresh' } }
+    } } }];
+    const staleParts = [{ functionResponse: { response: {
+      result: { meta: { asOf: '2026-09-12T06:00:00+09:00', freshness: 'stale' } }
+    } } }];
+
+    expect(appendFinanceMetadata('**食費**は142,665円だよ。', freshParts))
+      .toBe('**食費**は142,665円だよ。');
+    expect(appendFinanceMetadata('**食費**は142,665円だよ。', staleParts))
+      .toContain('データが少し古い可能性があるよ。最終更新は2026-09-12だよ。');
   });
 });
 
