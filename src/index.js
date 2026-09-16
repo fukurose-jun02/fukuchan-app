@@ -17,7 +17,11 @@ const FINANCE_SYNTHESIS_INSTRUCTION = `
 ナレッジ本文・過去の会話・モデル自身の知識にある別の金額や期間は無視し、resultにない金額を推測・補完しないでください。
 resultにcategoryがある場合は、そのカテゴリのbase_yen・compare_yen・delta_yen・change_rateを優先して説明してください。
 resultにエラーがある場合だけ、値を作らず取得できない理由を簡潔に伝えてください。
-日本語でふくちゃんらしく簡潔に答え、result.meta.asOfとresult.meta.freshnessがあれば必ず含めてください。
+日本語でふくちゃんらしく、結論を先に短く答えてください。
+単一の金額を答えるときは、項目名と主要な金額をMarkdownの太字（例：**食費**は**142,665円**だったよ。）にしてください。
+複数の内訳や比較項目があるときだけMarkdownの箇条書きを使ってください。
+「ふくのノートによると」「情報は新しいよ」などの定型句、取得日時の長い説明、括弧付きのメタ情報は通常の回答に入れないでください。
+result.metaは内部判断に使ってください。freshならasOfやfreshnessを表示せず、stale/expiredのときだけ短い注意を添えてください。利用者が更新日時や鮮度を尋ねた場合はその質問に必要な範囲で答えてください。
 `;
 
 const MAX_MESSAGE_LENGTH = 2000;
@@ -148,7 +152,7 @@ ${knowledgeText}
 
 ## 家計ツール利用ルール
 家計に関する金額・比較・資産の質問では、必ず提供されたfinance toolを使ってください。
-ツール結果にない金額を推測・補完せず、結果のmeta.asOfとmeta.freshnessを回答に含めてください。
+ツール結果にない金額を推測・補完しないでください。meta.asOfとmeta.freshnessは回答の鮮度判断に使い、通常のfresh回答へ機械的に追記しないでください。
 ツールがエラーを返した場合は、家計の値を推測せず、取得できない理由を簡潔に伝えてください。
 「今月の食費は先月に比べてどう？」のような質問では、compare_monthsを使い、period_modeは通常autoにしてください。
 家計以外の質問ではfinance toolを呼ばず、通常のナレッジまたは雑談として回答してください。
@@ -340,12 +344,17 @@ export function appendFinanceMetadata(reply, functionParts) {
     .map((part) => part?.functionResponse?.response?.result?.meta)
     .find((meta) => meta && (meta.asOf || meta.freshness));
   if (!metadata || typeof reply !== 'string') return reply;
-  const asOf = typeof metadata.asOf === 'string' && metadata.asOf ? metadata.asOf : '不明';
-  const freshness = typeof metadata.freshness === 'string' && metadata.freshness
-    ? metadata.freshness
-    : '不明';
-  if (reply.includes(asOf) && reply.includes(freshness)) return reply;
-  return `${reply}\n\n（家計データ基準日時: ${asOf} / 鮮度: ${freshness}）`;
+  if (metadata.freshness !== 'stale' && metadata.freshness !== 'expired') return reply;
+
+  const warning = metadata.freshness === 'expired'
+    ? 'データが古い可能性があるよ。'
+    : 'データが少し古い可能性があるよ。';
+  const asOf = typeof metadata.asOf === 'string' && metadata.asOf
+    ? metadata.asOf.slice(0, 10)
+    : '';
+  const suffix = asOf ? `${warning}最終更新は${asOf}だよ。` : warning;
+  if (reply.includes(suffix)) return reply;
+  return `${reply.trim()}\n\n${suffix}`;
 }
 
 export async function callGeminiWithFinance(
