@@ -167,6 +167,38 @@
       white-space: pre-wrap;
     }
 
+    .msg-bubble.markdown { white-space: normal; }
+    .msg-bubble.markdown p { margin: 0; }
+    .msg-bubble.markdown p + p { margin-top: 0.75em; }
+    .msg-bubble.markdown ul,
+    .msg-bubble.markdown ol { margin: 0.35em 0 0.35em 1.25em; padding: 0; }
+    .msg-bubble.markdown li + li { margin-top: 0.2em; }
+    .msg-bubble.markdown h1,
+    .msg-bubble.markdown h2,
+    .msg-bubble.markdown h3 { margin: 0.35em 0; line-height: 1.35; }
+    .msg-bubble.markdown blockquote {
+      margin: 0.5em 0;
+      padding-left: 0.75em;
+      border-left: 3px solid var(--pink);
+      color: var(--text-light);
+    }
+    .msg-bubble.markdown pre {
+      margin: 0.5em 0;
+      padding: 0.6em;
+      overflow-x: auto;
+      border-radius: 8px;
+      background: var(--cream);
+      font-size: 0.9em;
+    }
+    .msg-bubble.markdown code {
+      padding: 0.1em 0.25em;
+      border-radius: 4px;
+      background: var(--cream-dark);
+      font-size: 0.92em;
+    }
+    .msg-bubble.markdown pre code { padding: 0; background: transparent; }
+    .msg-bubble.markdown strong { font-weight: 700; }
+
     /* ふく側 */
     .message.bot .msg-bubble {
       background: var(--white);
@@ -558,6 +590,7 @@
 
 </div>
 
+<script src="markdown.js"></script>
 <script>
   /* ===== PIN認証 ===== */
   // 正解PINはフロントエンドに置かない。/authへ送って照合結果を受け取る（design.md 5章）
@@ -696,7 +729,14 @@
 
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
-    bubble.textContent = text;
+    if (role === 'user') {
+      bubble.textContent = text;
+    } else if (window.renderMarkdown) {
+      bubble.classList.add('markdown');
+      window.renderMarkdown(bubble, text);
+    } else {
+      bubble.textContent = text;
+    }
 
     const time = document.createElement('div');
     time.className = 'msg-time';
