@@ -6,6 +6,7 @@ import {
   createToken,
   verifyToken,
   statusForUpstreamError,
+  loadAllKnowledge,
 } from './index.js';
 
 const TEST_PIN = '9999'; // vitest.config.js の miniflare.bindings.WORKER_PIN と一致させる
@@ -200,5 +201,29 @@ describe('statusForUpstreamError', () => {
     expect(statusForUpstreamError(new Error('github_fetch_failed:500'))).toBe(502);
     expect(statusForUpstreamError(new Error('gemini_failed:400'))).toBe(502);
     expect(statusForUpstreamError(new Error('no_candidates'))).toBe(502);
+  });
+});
+
+describe('loadAllKnowledge', () => {
+  it('家計簿ファイルを取得対象に含めない', async () => {
+    const paths = [];
+    const [promptText, knowledgeText] = await loadAllKnowledge(
+      { GITHUB_REPO: 'example/repo', GITHUB_TOKEN: 'test-token' },
+      {
+        fetchImpl: async (url) => {
+          paths.push(new URL(url).pathname);
+          return new Response(url.includes('/prompt/') ? 'prompt' : 'knowledge');
+        },
+      }
+    );
+
+    expect(promptText).toBe('prompt');
+    expect(knowledgeText).toContain('家族情報');
+    expect(paths).toEqual([
+      '/repos/example/repo/contents/knowledge/family.md',
+      '/repos/example/repo/contents/knowledge/contract.md',
+      '/repos/example/repo/contents/prompt/fukuchan.md',
+    ]);
+    expect(paths.some((path) => path.includes('finance'))).toBe(false);
   });
 });

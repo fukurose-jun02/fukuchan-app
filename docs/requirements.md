@@ -35,7 +35,7 @@
 ## 4. 現状の実装（移行前提の整理）
 
 ### バックエンド（`fukuchan-knowledge/backend/main.py`、105行）
-- `POST /chat`：GitHub Contents APIから4ファイル（`family.md`・`contract.md`・`finance.csv`・`fukuchan.md`）を取得し、Gemini API（`gemini-2.5-flash`）にシステムプロンプト＋ナレッジ＋会話履歴＋当日日付とともに投げて応答を返す
+- `POST /chat`：GitHub Contents APIから3ファイル（`family.md`・`contract.md`・`fukuchan.md`）を取得し、Gemini API（`gemini-2.5-flash`）にシステムプロンプト＋ナレッジ＋会話履歴＋当日日付とともに投げて応答を返す
 - `GET /health`：ヘルスチェック
 - ステートレス（会話履歴はフロントエンドから毎回送信される。サーバー側で保持しない）
 - 環境変数：`GEMINI_API_KEY`・`GITHUB_TOKEN`・`GITHUB_REPO`

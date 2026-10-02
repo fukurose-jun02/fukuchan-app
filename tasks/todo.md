@@ -454,7 +454,7 @@
 - [x] 同期専用Worker、Cron Trigger、Browser Run / Playwright、D1 staging/activeの構成案を作る
 - [ ] Browser RunでMoney Forwardのログイン・読み取りPoCを実施する
 - [x] ユーザーからCloudflare SecretsへのMoney Forward認証情報保管と実ログインPoCの承認を得る
-- [ ] OTP・Bot対策・失敗時のstale運用を確定する
+- [x] OTP・Bot対策・失敗時のstale運用を確定する（ADR-003でHITL、Bot/OTP/タイムアウト、stale維持の境界を定義。実アカウントでの認証後取得は未検証）
 - [ ] 1時間ごとのCron同期を実装し、実データのGo/No-Goを判断する
 
 ## 自動同期PoC再開計画（2026-09-12）
@@ -511,6 +511,114 @@
 - `SYNC_POC_TOKEN`にANSI制御文字が混入していたため、AuthorizationヘッダーがCloudflare端でHTTP 400になっていた。トークンを64文字hexへローテーションした後、公開サイト診断はHTTP 200となり、Browser Run bindingの正常動作を確認した。
 - Money Forwardログイン画面の送信ボタンセレクタを`button#submitto`優先へ修正し、実ログインPoCは`OTP_REQUIRED`（`/email_otp`）まで到達した。診断ルート削除と`POC_ENABLED=false`への復旧、`/health`=200・`/poc/login`=404を確認済みである。
 
+## PRマージとmain統合（2026-09-13）
+
+- [x] ローカル変更9件をコミットする（秘密情報ファイルは対象外、`npm test`69件成功を確認）
+- [x] `codex/issue-1-finance-sync-poc`ブランチを作成し、`main`へ直接pushせずoriginへpushする
+- [x] PR #5を作成し、CI成功・`mergeStateStatus=CLEAN`を確認する
+- [x] PRを`main`へマージし、ローカル`main`を`origin/main`へ同期する
+
+### 次回の開始地点
+
+- OTPを安全に扱う方式を決める。
+- OTP後のMoney Forward画面から必要集計を取得できるか検証する。
+- Go/No-Goと別途承認が完了するまで、実データのD1投入・本番Cron有効化は行わない。
+
+### Review
+
+- コミット`31061f7`「fix: complete finance login poc validation」を作成し、`npm test`69件成功を確認した。秘密情報ファイルはステージしていない。
+- ローカル`main`が`origin/main`より31コミット先行していたため、`main`へ直接pushせず`codex/issue-1-finance-sync-poc`ブランチを作成してpushした。
+- [PR #5「Issue #1: add finance MCP and automatic sync PoC」](https://github.com/fukurose-jun02/fukuchan-app/pull/5)を作成し、CI（`test-and-deploy`）のpassと`mergeStateStatus=CLEAN`を確認してからマージした。マージコミットは`46d5a56`。
+- ローカル`main`を`origin/main`へfast-forward同期し、`git status --short -uall`のクリーンを確認した。`git push --force`・秘密情報の表示・`main`への直接pushは行っていない。
+- Issue #1関連の実装一式（finance MCP、自動同期PoC、ログインPoCのOTP到達まで）が`main`へ統合された。実データ取得・D1への実データ投入・本番Cron有効化は引き続き未実施。次はOTP以降の認証フローと同期処理の設計。
+
+## 次フェーズ：OTP/Human in the Loopと認証後集計取得（2026-09-14）
+
+### 計画
+
+- [x] 現行PoC・ADR・要件・実装計画と、Cloudflare Browser Runの現行Live View/Human in the Loop仕様を照合する
+- [x] OTPをWorker API・KV・ログ・LLMへ渡さない認証フローをADRとして確定する
+- [x] OTP要求、Live View handoff、認証後画面、集計取得、セッション破棄の契約をローカルfixtureで固定する
+- [x] PoC専用Workerへ構造化handoffとCLI Live Viewフォールバックを実装する（実行時の`getLiveView`失敗を確認し、CLI経路を追加）
+- [x] 実ブラウザで認証済みMoney Forward MEへ入り、実データの値を保存せず認証後画面の構造とセレクタを観測する
+- [x] 観測済みセレクタから日付・金額・カテゴリ・件数だけを集計する抽出アダプタをWorkerへ接続する
+- [x] 認証後に取得する値を集計値・件数・基準日時だけに限定し、明細・Cookie・Storage State・画面本文を保存しない境界実装を追加する
+- [x] 認証後集計取得のセレクタ変更・未ログイン・OTP再要求・Bot対策・タイムアウトをfixtureテストする
+- [ ] ユーザーの別途承認後に限り、実アカウントで1回だけHITLログイン後の集計取得を検証する
+- [ ] 実データのD1投入・本番Cron有効化・継続セッション保存はGo判定と別途承認まで行わない
+
+### 実装前の不変条件
+
+- OTPはLive View上で管理者が直接入力し、WorkerのHTTP body、Secrets、KV、ログ、LLMへ渡さない。
+- Browser RunのLive View URL、セッションID、handoff状態は短時間・最小権限で扱い、録画を有効化しない。
+- 認証後に返すのは検証済みの集計値・件数・`as_of`・粗い状態コードだけとし、Cookie、Storage State、画面本文、取引摘要、口座番号を返さない。
+- 集計取得に失敗した場合は新しいactiveを作らず、直前のactiveをstaleとして維持する。
+- OTPが毎回必要、Live Viewを安全に運用できない、または集計画面が安定しない場合は、Cloudflare自動同期をNo-Goとしてローカル同期または手動CSVへ戻す。
+
+### Review
+
+- Cloudflare公式仕様では、Browser RunのLive View/Human in the Loopで認証やMFAを人へ委譲でき、Playwrightセッションは再接続できる。一方、非アクティブ保持は最大10分で、Browser RunはBotとして識別される。
+- 実アカウント試行は行ったが、OTP入力、認証後画面の取得、実データ取得、D1投入、本番Cron有効化は行っていない。
+- [ADR-003](../docs/issue-1-household-finance-mcp/adr-003-otp-and-authenticated-session.md)を追加し、OTPを独自APIで受け取らず、Live View/Human in the Loop上で管理者が直接入力する方針を提案した。
+- `workers/finance-sync/login-poc/src/workflow.js`と契約テストを追加し、Live View URLのorigin検証、handoffの10分上限、OTP/Bot優先判定、集計値だけの正規化、機密フィールド拒否を固定した。
+- `npm test`：10ファイル・85テストすべて成功。`git diff --check`と既知のsecret形式チェックも成功した。
+- 実ブラウザでMoney Forward IDのアカウント選択後にMoney Forward ME本体へ入り、`/`と`/cf`の構造を値非表示で観測した。取得処理・実データ同期・D1投入・本番Cron・セッション永続化は未実施のままとした。
+- `workflow.js`へ認証済み集計だけを通す`extractAggregateSnapshot`を追加し、架空の認証済み・OTP・Bot・セレクタ変更fixtureを追加した。
+- 実画面で確認した`#monthly_total_table_home`、`#monthly_total_table_kakeibo`、`.daily-info .cf-detail-table`、`tr[id^="js-transaction-"]`、`.assets-info`をPoCの観測セレクタへ反映した。
+- `aggregate.js`を追加し、明細本文・口座名・メモを返さず、日次・月次・カテゴリ・資産の集計スナップショットへ変換する抽出アダプタを実装した。HITL resumeからホームと`/cf`を読み、構造化集計だけを返す境界へ接続した。
+- `@cloudflare/playwright`を`1.3.6`へ固定した。構造化Live Viewの実行時エラーを安全な`hitl_live_view`として記録し、OTP要求まで到達したことだけを確認した。
+- 実アカウントの試行では、最初の試行が`BROWSER_ERROR`、更新後の試行がOTP検出後に`getLiveView`失敗となった。OTP入力、認証後画面の取得、実データの保存・D1投入は行っていない。
+- CLIのLive Viewで一時セッションを確認し、セッションを明示的に終了した。その後Workerを`POC_ENABLED=false`で再デプロイし、`/health`=200、HITL開始口=404、Browser Run残存セッション=0を確認した。
+- 実行時の制約に対応するため、既存ページ再利用・手動CLI Live View・Handoff状態非対応時の保留応答をフォールバックとして実装した。
+- ユーザーの再承認後にPoC専用Workerを一時有効化して1回再試行した。OTP要求後に`MANUAL_LIVE_VIEW_REQUIRED`となったが、CLI Live Viewは空のDevTools表示で、OTP入力・認証後画面取得・実データ取得には進めなかった。
+- 同じ一時セッションのresumeは`BROWSER_ERROR`となった。セッションを終了し、Workerを`POC_ENABLED=false`で再デプロイ、`/health`=200、HITL開始口=404、Browser Run残存セッション=0を再確認した。
+- 今回の再試行でOTP後のHITL画面を観測できなかったため、同じ経路の追加試行は新たな判断と承認まで行わない。
+
+### HITL再試行（明示承認後、2026-09-14）
+
+- [x] 既存Cloudflare Secretsを再配備せず、ログインPoCの実行ゲートだけを一時有効化する
+- [x] HITL開始からLive View接続までを1回再試行する
+- [x] OTP入力前に空のDevTools画面であることを確認し、セッションを閉じる
+- [x] Workerを無効化し、health・HITL開始口・残存Browser Runを確認する
+
+### Review
+
+- ユーザーの明示承認後、既存Secretsを保持したまま`POC_ENABLED=true`だけを一時デプロイした。
+- `/poc/hitl/start`はHTTP 200で`MANUAL_LIVE_VIEW_REQUIRED`に到達したが、構造化Live View URLは発行されなかった。
+- CLI Live Viewは`about:blank`の空画面とDevToolsだけで、Money ForwardのOTP画面ではなかった。OTPは入力していない。
+- 一時Browser Runセッションを閉じ、`POC_ENABLED=false`へ復旧した。復旧後は`/health`=200、HITL開始口=404、残存セッション0件を確認した。
+- 現行Browser RunのLive View経路では認証後取得を検証できないため、実データD1投入・本番Cron有効化は行わない。
+
+## 次フェーズ：集計スナップショットのD1 staging/active writer（2026-09-14）
+
+### 計画
+
+- [x] 認証後集計に日次カテゴリ集計を追加し、D1の全集計表へ対応する
+- [x] 日次/月次、カテゴリ日次/月次、件数、期間、金額の整合性を投入前に検証する
+- [x] 固定SQLとbindパラメータだけでstaging投入・active切り替えを行う計画を実装する
+- [x] 検証失敗時のD1未呼び出しと、batch失敗時の旧active維持を合成fixtureで確認する
+- [x] ローカルD1へ架空fixtureを適用し、新syncのactive化・旧syncのsuperseded化・日次/月次合計一致を確認する
+- [x] リモートD1へ架空fixtureを1回投入して読み取り検証し、既存デモsyncをactiveへ復元する（実データは対象外）
+- [x] snapshot loaderとD1 writerを接続する同期オーケストレーターを追加し、失敗時の固定エラー境界をfixture化する
+- [x] 本番同期Workerの骨格へD1 bindingを接続し、同期口・Cronを無効状態でdry-runする
+- [x] 無効化済み同期Workerをデプロイし、health=200・POST同期口=404を確認する
+- [x] 認証済みページ参照→aggregate snapshot→D1 writerの接続契約をfixture化する
+- [ ] 認証済みsnapshot loaderを実ブラウザ取得へ接続する
+- [ ] 実データ同期・本番Cron有効化・認証済みセッション永続化はGo/No-Goと別途承認まで行わない
+
+### Review
+
+- `workers/finance-sync/login-poc/src/aggregate.js`へ`categoryDaily`を追加し、`category_daily_totals`への入力契約を揃えた。
+- `workers/finance-sync/src/d1-sync.js`を追加し、正規化、整合性検証、固定SQL/bind、atomic batchによるstaging→active切り替えを実装した。値はSQL文字列へ埋め込まず、明細・口座・Cookie等を扱わない。
+- `npm test`：14ファイル・100テストすべて成功。D1 writer、同期オーケストレーター、同期Worker骨格、認証済みページloaderの境界テストも成功した。
+- `workers/finance-sync/fixtures/d1-writer-smoke.sql`をローカルD1へ適用し、`writer-smoke-2026-09-14`が`active`、旧`writer-old-active`が`superseded`になることを確認した。日次収入・支出と月次収入・支出も一致した。
+- リモートD1の読み取り確認はWrangler OAuthの認証エラーで停止したため、リモートD1への変更は行っていない。
+- 実データの取得・D1投入、本番Cron、セッション永続化は行っていない。今回のリモートD1操作は架空fixtureのみで、既存デモsyncはactiveへ復元した。
+- `workers/finance-sync/src/sync.js`を追加した。snapshot loaderの失敗や不正集計を固定error codeへ変換し、画面本文・例外詳細を返さない。実WorkerのD1 binding/Cron接続は未実施である。
+- `workers/finance-sync/wrangler.toml`と`src/index.js`を追加し、`FINANCE_DB` bindingだけを骨格へ接続した。`SYNC_ENABLED=false`、Cron未設定、同期APIなしの状態でWorker dry-runとhealth fixtureを確認する。
+- `workers/finance-sync/src/browser-loader.js`を追加し、認証済みページ参照を`extractAggregateFromPages`へ渡し、その結果だけを同期オーケストレーターへ渡す契約をfixture化した。実ブラウザ取得・OTP・Cronは未接続である。
+- `fukuchan-finance-sync`を`SYNC_ENABLED=false`・Cron未設定でデプロイした。`/health`は200、`POST /sync`は404、本文は`mode=disabled`であり、同期口は公開していない。
+
 ## 次フェーズ：Option 2 手動CSVインポート（2026-09-14）
 
 ### 計画
@@ -540,3 +648,88 @@
 - ユーザーの`OK`後、`manual-csv-20260915-aug`をremote D1へ投入した。active、daily=0、monthly=1、category=18、asset=0、日次テーブル0行、月次カテゴリ合計一致、active 1件を確認した。
 - 初回のSQL実行はD1 CLIが明示的な`BEGIN TRANSACTION`を拒否したため適用されなかった。トランザクション文を外し、active化を旧active切り替えより先にするD1 CLI用SQLへ修正後、22クエリの投入に成功した。一時SQLは削除済みである。
 - CSVの投入先として`data/manual-csv/inbox/`を作成した。実CSVはこのフォルダへ手動保存し、`.gitignore`で除外する。
+
+## 次フェーズ：ふくちゃん応答のMarkdown表示（2026-09-16）
+
+### 計画
+
+- [x] botメッセージのMarkdown記法を安全なDOMへ変換する
+- [x] 太字・箇条書き・見出し・コード表示の見た目をモバイル画面で整える
+- [x] HTMLを実行しないことと既存チャット表示の回帰をテストする
+
+### Review
+
+- `public/markdown.js`を追加し、bot回答の太字・箇条書き・見出し・引用・コード・`https`リンクをDOM要素へ変換するようにした。`innerHTML`は使用していない。
+- ユーザーの吹き出しは従来どおり`textContent`で表示し、ユーザー入力をMarkdownとして解釈しない。
+- `public/index.html`へモバイル向けのMarkdown要素の余白・リスト・コード表示を追加した。
+- Markdownパーサーの単体テスト3件、全体テスト17ファイル・110件、`git diff --check`を確認した。
+
+## 次フェーズ：家計回答の簡潔化（2026-09-16）
+
+### 計画
+
+- [x] fresh時の基準日時・鮮度メタ情報を通常回答へ自動表示しない
+- [x] 単一金額回答の主要項目・金額をMarkdown太字にし、不要な定型句を抑える
+- [x] stale/expired時の短い警告と既存finance function-callingの回帰をテストする
+
+### Review
+
+- `src/index.js`のfinance synthesis指示を更新し、単一金額の項目名・主要金額をMarkdown太字にし、不要な定型句・括弧付きメタ情報を避けるようにした。
+- `fresh`時は基準日時・鮮度コードを通常回答へ追記せず、`stale`/`expired`時だけ日付付きの短い警告を付けるようにした。
+- 要件・設計・実装計画にも、鮮度メタ情報は内部判定し必要時だけ表示する方針を反映した。
+- finance統合テスト7件、全体テスト17ファイル・111件、`git diff --check`を確認した。
+
+## 2026年Money Forward CSV一括処理（2026-09-16）
+
+### 計画
+
+- [x] `data/manual-csv/inbox/`の対象CSVを列形式・対象月・粒度だけで検証する
+- [x] 2026年分CSVを明細・メモ非保持の`monthly_only`スナップショットへ統合する
+- [x] D1 staging/active切り替えSQLのdry-runと件数・整合性を確認する
+- [ ] 実データのremote D1反映は、dry-run結果を提示して別途承認を得るまで行わない
+
+### Review
+
+- `data/manual-csv/inbox/`にある9ファイル（2026-01〜2026-09）を検証した。全ファイルがMoney Forward「収入・支出詳細」形式で、`monthly_only`として読み込めた。
+- 9ファイルを1スナップショットへ統合し、月次9件・カテゴリ130件・日次0件・資産0件、D1 SQL 142ステートメントを生成した。
+- 元CSVのデータ行1,287件のうち、振替・計算対象外を除く1,097件を集計対象とした。ファイル名の対象月と検出月は全件一致した。
+- 出力SQLへ明細・メモ・金融機関・IDを含めていないこと、明示的トランザクション文がないことを確認した。
+- `npm test`：17ファイル・111件すべて成功。remote D1への実データ反映は未実施。
+
+## 家計簿機能の分離方針（2026-10-02）
+
+### 計画
+
+- [x] 現行の家計機能が`fukuchan-app`へ残している依存関係を棚卸しする
+- [x] 別アプリ／エージェント分離のADR案を作成する
+- [ ] 最初の利用面を外部MCPクライアント／エージェントか専用Webアプリか決める
+- [ ] finance MCPの論理分析ツール契約を固定する
+- [ ] standalone finance agentをデモデータで作成・検証する
+- [ ] 現行ふくちゃん回答との並行比較を行う
+- [ ] 受け皿の検証後に`fukuchan-app`から家計機能を段階的に削除する
+- [ ] 必要性を確認した後、financeコードの別リポジトリ化を検討する
+
+### Review
+
+- 家計のD1・MCP・同期Workerは既に別Workerとして存在するが、root Workerが`FINANCE_SERVICE`、finance function calling、`finance.csv`読み込みを保持しているため、論理的な分離は未完了と判断した。
+- `docs/issue-1-household-finance-mcp/adr-004-finance-separation.md`をProposedとして追加した。
+- 本番挙動、D1、Secrets、デプロイ設定は変更していない。standalone consumerを検証するまでrootの家計機能は停止しない。
+
+## 新プロジェクト作成とふくちゃんからの家計簿除去（2026-10-02）
+
+### 計画
+
+- [x] 新しい独立プロジェクト`家計分析エージェント`を作成し、最小限の設計用骨格を用意する
+- [x] 既存の家計簿コード・設計文書・CSVを新プロジェクトの`legacy/`へ退避し、旧資産を失わないようにする
+- [x] `fukuchan-app`から家計簿の実行コード・テスト・Service Binding・設定・依存パッケージを除去する
+- [x] README・AGENTS・gitignoreから家計簿機能の説明と旧プロジェクト固有の参照を除去する
+- [x] `fukuchan-app`に家計簿関連の実行時参照が残っていないことを検索で確認する
+- [x] 既存テスト、`git diff --check`、新プロジェクトの初期状態を検証する
+
+### Review
+
+- `家計分析エージェント`を新規Gitプロジェクトとして作成し、要件・構成のDraftと`legacy/`退避領域を用意した。
+- 旧家計簿資産は削除せず、新プロジェクトへ退避した。認証用`.dev.vars`の値は表示していない。
+- `fukuchan-app`本体から家計簿コード、UI、設定、依存関係、家計CSV参照を除去した。
+- 作業ログ（`logs/`）は除去対象から除外し、`fukuchan-app`側に残した。
+- 本番デプロイや既存D1の削除は行っていない。旧本番側の停止・削除は別途明示承認が必要である。
